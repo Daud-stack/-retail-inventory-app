@@ -8,14 +8,20 @@ import {
   Zap,
   AlertTriangle,
   ChevronRight,
-  ChevronLeft,
   Store,
   PanelLeftClose,
   PanelLeftOpen,
-  Sparkles
+  X
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCount }) {
+export default function Sidebar({ 
+  activeTab, 
+  setActiveTab, 
+  lowStockCount, 
+  cartCount,
+  isMobileOpen,
+  onCloseMobileMenu
+}) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
@@ -23,21 +29,18 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
       id: 'dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      badge: null,
       desc: 'Overview & Analytics'
     },
     {
       id: 'products',
       label: 'Product Catalog',
       icon: PackageSearch,
-      badge: null,
       desc: 'Filtered Stock View'
     },
     {
       id: 'add-product',
       label: 'Stock Manager',
       icon: PackagePlus,
-      badge: null,
       desc: 'Add & Barcode Scan'
     },
     {
@@ -50,7 +53,6 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
     }
   ];
 
-  // Helper for view transitions if supported by browser
   const handleTabClick = (tabId) => {
     if (document.startViewTransition) {
       document.startViewTransition(() => {
@@ -59,11 +61,12 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
     } else {
       setActiveTab(tabId);
     }
+    if (onCloseMobileMenu) onCloseMobileMenu();
   };
 
-  return (
+  const sidebarContent = (
     <aside 
-      className={`bg-slate-900/95 border-r border-slate-800/80 flex flex-col h-screen sticky top-0 backdrop-blur-xl z-30 shrink-0 select-none transition-all duration-300 ${
+      className={`bg-slate-900/95 border-r border-slate-800/80 flex flex-col h-full backdrop-blur-xl shrink-0 select-none transition-all duration-300 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
@@ -87,14 +90,24 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
           )}
         </div>
 
-        {/* Collapse / Expand Toggle Button */}
+        {/* Collapse / Expand Toggle (Desktop) */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition-colors shrink-0"
+          className="hidden md:flex p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition-colors shrink-0"
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
         </button>
+
+        {/* Mobile Close Button */}
+        {onCloseMobileMenu && (
+          <button
+            onClick={onCloseMobileMenu}
+            className="md:hidden p-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Main Navigation */}
@@ -118,7 +131,6 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
                   ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-600/30 font-medium scale-[1.01]'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:scale-[1.01]'
               }`}
-              title={isCollapsed ? item.label : undefined}
             >
               <div className="flex items-center gap-3">
                 <div
@@ -144,7 +156,6 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
                 )}
               </div>
 
-              {/* Badge Pills */}
               {item.badge !== null && (
                 <span
                   className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white ${
@@ -171,7 +182,7 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-200">Stock Threshold Alerts</h4>
+              <h4 className="text-xs font-bold text-slate-200">Stock Alerts</h4>
               <p className="text-[11px] text-amber-400 font-semibold">{lowStockCount} items low</p>
             </div>
           </div>
@@ -185,7 +196,7 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
         </div>
       )}
 
-      {/* System Status Footer */}
+      {/* Footer */}
       <div className="p-3.5 border-t border-slate-800/80 text-xs text-slate-400 flex items-center justify-between bg-slate-950/60">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
@@ -199,5 +210,30 @@ export default function Sidebar({ activeTab, setActiveTab, lowStockCount, cartCo
         )}
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop Fixed Sidebar */}
+      <div className="hidden md:block h-screen sticky top-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile Slide-in Drawer Modal */}
+      {isMobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex animate-fadeIn">
+          {/* Backdrop Blur Overlay */}
+          <div 
+            onClick={onCloseMobileMenu}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+          />
+
+          {/* Drawer Panel */}
+          <div className="relative z-10 w-72 h-full bg-slate-900 shadow-2xl">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

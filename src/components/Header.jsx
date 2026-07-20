@@ -2,14 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   ScanLine, 
-  Bell, 
   ShoppingCart, 
   Clock, 
-  Sparkles,
-  Shirt,
-  ShoppingBag,
-  Box,
-  Plus
+  Plus,
+  Menu,
+  Store
 } from 'lucide-react';
 
 export default function Header({ 
@@ -17,9 +14,9 @@ export default function Header({
   setActiveTab, 
   searchQuery, 
   setSearchQuery, 
-  lowStockCount, 
   cartCount,
-  onOpenScanner
+  onOpenScanner,
+  onOpenMobileMenu
 }) {
   const [timeStr, setTimeStr] = useState('');
 
@@ -34,42 +31,53 @@ export default function Header({
   }, []);
 
   const tabTitles = {
-    dashboard: { title: 'Store Dashboard & Metrics', subtitle: 'Real-time inventory valuation & category breakdown' },
-    products: { title: 'Product Inventory List', subtitle: 'Filter across Clothing, Groceries & Miscellaneous' },
-    'add-product': { title: 'Stock Entry & Update', subtitle: 'Add new products or scan barcode SKU' },
-    pos: { title: 'POS Invoicing & Checkout', subtitle: 'Build cart list, calculate taxes & print receipt' }
+    dashboard: { title: 'Dashboard', subtitle: 'Metrics & Category Valuation' },
+    products: { title: 'Product Catalog', subtitle: 'Filter Clothing, Groceries & Misc' },
+    'add-product': { title: 'Stock Entry', subtitle: 'Add Item or Scan Barcode SKU' },
+    pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' }
   };
 
   const currentInfo = tabTitles[activeTab] || tabTitles.dashboard;
 
   return (
-    <header className="h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
-      {/* Left Title & Subtitle */}
-      <div>
-        <h2 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-          {currentInfo.title}
-        </h2>
-        <p className="text-xs text-slate-400">{currentInfo.subtitle}</p>
+    <header className="h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
+      {/* Left: Mobile Menu Button + Title */}
+      <div className="flex items-center gap-3">
+        {/* Mobile Hamburger Menu Toggle Button */}
+        <button
+          onClick={onOpenMobileMenu}
+          className="md:hidden p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+          title="Open Mobile Navigation Menu"
+        >
+          <Menu className="w-5 h-5 text-indigo-400" />
+        </button>
+
+        <div>
+          <h2 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
+            {currentInfo.title}
+          </h2>
+          <p className="text-[11px] text-slate-400 hidden sm:block">{currentInfo.subtitle}</p>
+        </div>
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Global Quick Search Input */}
-        <div className="relative w-64 hidden md:block">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="relative w-36 sm:w-64 hidden sm:block">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search SKU, name..."
+            placeholder="Search SKU..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            className="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-all"
           />
         </div>
 
         {/* Scan Barcode Quick Action */}
         <button
           onClick={onOpenScanner}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium transition-all group hover:border-indigo-500/50"
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium transition-all group hover:border-indigo-500/50"
         >
           <ScanLine className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
           <span className="hidden sm:inline">Scan SKU</span>
@@ -78,7 +86,7 @@ export default function Header({
         {/* Quick Add Product Button */}
         <button
           onClick={() => setActiveTab('add-product')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-all shadow-md shadow-indigo-600/20"
+          className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-all shadow-md shadow-indigo-600/20"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Add Stock</span>

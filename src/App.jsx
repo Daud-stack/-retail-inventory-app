@@ -20,10 +20,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState([]);
   
-  // Modals & Form States
+  // Modals & Mobile Drawer States
   const [editingProduct, setEditingProduct] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptMeta, setReceiptMeta] = useState(null);
@@ -104,12 +105,10 @@ export default function App() {
     if (!activeMeta || cart.length === 0) return;
 
     try {
-      // Execute engine stock deduction & audit logging
       const res = executeCheckoutInvoice(products, cart, activeMeta, stockMovements);
       setProducts(res.products);
       setStockMovements(res.stockMovements);
 
-      // Record transaction history record
       const newTx = {
         id: activeMeta.invoiceId,
         customer: activeMeta.customer || 'Walk-in Customer',
@@ -130,12 +129,14 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation (Desktop + Mobile Drawer) */}
       <Sidebar 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         lowStockCount={lowStockCount}
         cartCount={totalCartUnits}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main View Area */}
@@ -146,9 +147,9 @@ export default function App() {
           setActiveTab={setActiveTab}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          lowStockCount={lowStockCount}
           cartCount={totalCartUnits}
           onOpenScanner={() => setIsScannerOpen(true)}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
         {/* Dynamic Section Renderer */}
