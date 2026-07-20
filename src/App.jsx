@@ -11,6 +11,7 @@ import POSCart from './components/POSCart';
 import ReceiptModal from './components/ReceiptModal';
 import QuickCartDrawer from './components/QuickCartDrawer';
 import UserManagementModal from './components/UserManagementModal';
+import ForecastingView from './components/ForecastingView';
 import { executeCheckoutInvoice } from './services/inventoryEngine';
 
 export default function App() {
@@ -208,6 +209,14 @@ export default function App() {
               onOpenScanner={() => setIsScannerOpen(true)}
               scannedBarcode={scannedBarcode}
               setScannedBarcode={setScannedBarcode}
+              currentUser={currentUser}
+            />
+          )}
+
+          {activeTab === 'forecasting' && (
+            <ForecastingView 
+              products={products}
+              onRestockItem={handleRestockItem}
               currentUser={currentUser}
             />
           )}

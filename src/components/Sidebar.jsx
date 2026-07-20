@@ -4,6 +4,7 @@ import {
   PackageSearch, 
   PackagePlus, 
   ShoppingCart, 
+  TrendingUp,
   Layers, 
   Zap,
   AlertTriangle,
@@ -20,7 +21,8 @@ export default function Sidebar({
   lowStockCount, 
   cartCount,
   isMobileOpen,
-  onCloseMobileMenu
+  onCloseMobileMenu,
+  currentUser
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -42,6 +44,12 @@ export default function Sidebar({
       label: 'Stock Manager',
       icon: PackagePlus,
       desc: 'Add & Barcode Scan'
+    },
+    {
+      id: 'forecasting',
+      label: 'Stock Forecasting',
+      icon: TrendingUp,
+      desc: 'Time Series Predictions'
     },
     {
       id: 'pos',

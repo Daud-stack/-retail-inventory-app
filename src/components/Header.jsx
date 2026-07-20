@@ -4,10 +4,8 @@ import {
   ScanLine, 
   ShoppingCart, 
   Clock, 
-  Plus,
   Menu,
-  ShieldCheck,
-  UserCheck
+  ShieldCheck
 } from 'lucide-react';
 import { ROLES } from '../config/rbac';
 
@@ -39,6 +37,7 @@ export default function Header({
     dashboard: { title: 'Dashboard', subtitle: 'Metrics & Category Valuation' },
     products: { title: 'Product Catalog', subtitle: 'Filter Clothing, Groceries & Misc' },
     'add-product': { title: 'Stock Entry', subtitle: 'Add Item or Scan Barcode SKU' },
+    forecasting: { title: 'Stock Demand Forecasting', subtitle: 'Time Series Predictions & Stockout Timelines' },
     pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' }
   };
 
