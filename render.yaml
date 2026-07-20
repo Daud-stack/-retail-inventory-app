@@ -1,0 +1,21 @@
+# =============================================================================
+# RENDER DEPLOYMENT BLUEPRINT SPECIFICATION
+# Deploys Backend Persistent API Web Service to Render connected to Neon DB
+# =============================================================================
+
+services:
+  - type: web
+    name: nexus-inventory-backend
+    env: node
+    region: oregon # or frankfurt, singapore, etc.
+    plan: free # or starter
+    buildCommand: npm install
+    startCommand: node server/index.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false # Set via Render Dashboard or Neon integration
