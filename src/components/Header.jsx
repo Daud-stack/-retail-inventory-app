@@ -5,8 +5,7 @@ import {
   ShoppingCart, 
   Clock, 
   Plus,
-  Menu,
-  Store
+  Menu
 } from 'lucide-react';
 
 export default function Header({ 
@@ -16,7 +15,8 @@ export default function Header({
   setSearchQuery, 
   cartCount,
   onOpenScanner,
-  onOpenMobileMenu
+  onOpenMobileMenu,
+  onOpenQuickCart
 }) {
   const [timeStr, setTimeStr] = useState('');
 
@@ -38,6 +38,14 @@ export default function Header({
   };
 
   const currentInfo = tabTitles[activeTab] || tabTitles.dashboard;
+
+  const handleCartClick = () => {
+    if (onOpenQuickCart) {
+      onOpenQuickCart();
+    } else {
+      setActiveTab('pos');
+    }
+  };
 
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shrink-0">
@@ -92,15 +100,15 @@ export default function Header({
           <span className="hidden sm:inline">Add Stock</span>
         </button>
 
-        {/* POS Cart Direct Link */}
+        {/* POS Cart Direct Link & Quick Drawer Trigger */}
         <button
-          onClick={() => setActiveTab('pos')}
-          className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors"
-          title="Open POS Checkout"
+          onClick={handleCartClick}
+          className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-all hover:scale-105 active:scale-95"
+          title="Open Quick Cart Drawer"
         >
           <ShoppingCart className="w-4 h-4 text-slate-300" />
           {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center justify-center animate-bounce">
+            <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center animate-bounce shadow-md">
               {cartCount}
             </span>
           )}

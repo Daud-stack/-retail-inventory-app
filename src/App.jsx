@@ -8,6 +8,7 @@ import ProductForm from './components/ProductForm';
 import BarcodeScannerModal from './components/BarcodeScannerModal';
 import POSCart from './components/POSCart';
 import ReceiptModal from './components/ReceiptModal';
+import QuickCartDrawer from './components/QuickCartDrawer';
 import { executeCheckoutInvoice } from './services/inventoryEngine';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isQuickCartOpen, setIsQuickCartOpen] = useState(false);
   
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptMeta, setReceiptMeta] = useState(null);
@@ -150,6 +152,7 @@ export default function App() {
           cartCount={totalCartUnits}
           onOpenScanner={() => setIsScannerOpen(true)}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          onOpenQuickCart={() => setIsQuickCartOpen(true)}
         />
 
         {/* Dynamic Section Renderer */}
@@ -200,6 +203,16 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Quick Cart Drawer Overlay */}
+      <QuickCartDrawer 
+        isOpen={isQuickCartOpen}
+        onClose={() => setIsQuickCartOpen(false)}
+        cart={cart}
+        setCart={setCart}
+        onGoToPOS={() => setActiveTab('pos')}
+        products={products}
+      />
 
       {/* Barcode Scanner Viewfinder Modal */}
       <BarcodeScannerModal 
