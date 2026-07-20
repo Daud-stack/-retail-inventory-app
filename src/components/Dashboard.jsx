@@ -4,20 +4,26 @@ import {
   TrendingUp, 
   AlertTriangle, 
   Package, 
-  Shirt, 
-  ShoppingBag, 
-  Box, 
   ArrowUpRight, 
   RefreshCw, 
   PieChart as PieChartIcon,
   BarChart3,
-  Layers,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Lock
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { hasPermission, PERMISSIONS } from '../config/rbac';
 
-export default function Dashboard({ products, onRestockItem, setActiveTab, setSelectedCategoryFilter }) {
+export default function Dashboard({ 
+  products, 
+  onRestockItem, 
+  setActiveTab, 
+  setSelectedCategoryFilter,
+  currentUser
+}) {
+  const canViewFinancials = hasPermission(currentUser?.role, PERMISSIONS.VIEW_FINANCIALS);
+
   // Calculated Key Metrics
   const totalStockValue = products.reduce((acc, item) => acc + (item.stock * item.cost), 0);
   const totalPotentialRevenue = products.reduce((acc, item) => acc + (item.stock * item.price), 0);
@@ -31,19 +37,19 @@ export default function Dashboard({ products, onRestockItem, setActiveTab, setSe
       name: 'Clothing', 
       value: products.filter(p => p.category === 'Clothing').reduce((acc, p) => acc + (p.stock * p.price), 0),
       count: products.filter(p => p.category === 'Clothing').length,
-      color: '#6366f1' // Indigo
+      color: '#6366f1'
     },
     { 
       name: 'Groceries', 
       value: products.filter(p => p.category === 'Groceries').reduce((acc, p) => acc + (p.stock * p.price), 0),
       count: products.filter(p => p.category === 'Groceries').length,
-      color: '#10b981' // Emerald
+      color: '#10b981'
     },
     { 
       name: 'Miscellaneous', 
       value: products.filter(p => p.category === 'Miscellaneous').reduce((acc, p) => acc + (p.stock * p.price), 0),
       count: products.filter(p => p.category === 'Miscellaneous').length,
-      color: '#f59e0b' // Amber
+      color: '#f59e0b'
     }
   ];
 
@@ -74,7 +80,7 @@ export default function Dashboard({ products, onRestockItem, setActiveTab, setSe
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto select-none">
       {/* Metrics Top Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Total Stock Value */}
@@ -86,17 +92,26 @@ export default function Dashboard({ products, onRestockItem, setActiveTab, setSe
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl font-bold text-slate-100 tracking-tight">
-              ${totalStockValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <span className="text-emerald-400 font-medium flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +12.4%
-            </span>
-            <span>asset valuation</span>
-          </p>
+          {canViewFinancials ? (
+            <>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-2xl font-bold text-slate-100 tracking-tight">
+                  ${totalStockValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                <span className="text-emerald-400 font-medium flex items-center">
+                  <ArrowUpRight className="w-3.5 h-3.5" /> +12.4%
+                </span>
+                <span>asset valuation</span>
+              </p>
+            </>
+          ) : (
+            <div className="py-2 text-xs text-amber-400 font-semibold flex items-center gap-1.5 bg-amber-500/10 px-3 rounded-xl border border-amber-500/20">
+              <Lock className="w-4 h-4 shrink-0" />
+              <span>Restricted (Admin / Manager Only)</span>
+            </div>
+          )}
         </div>
 
         {/* Metric 2: Potential Revenue */}
@@ -108,17 +123,26 @@ export default function Dashboard({ products, onRestockItem, setActiveTab, setSe
               <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl font-bold text-slate-100 tracking-tight">
-              ${totalPotentialRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <span className="text-emerald-400 font-medium">Est. Profit:</span>
-            <span className="text-slate-300 font-semibold">
-              ${(totalPotentialRevenue - totalStockValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-          </p>
+          {canViewFinancials ? (
+            <>
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-2xl font-bold text-slate-100 tracking-tight">
+                  ${totalPotentialRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                <span className="text-emerald-400 font-medium">Est. Profit:</span>
+                <span className="text-slate-300 font-semibold">
+                  ${(totalPotentialRevenue - totalStockValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </p>
+            </>
+          ) : (
+            <div className="py-2 text-xs text-amber-400 font-semibold flex items-center gap-1.5 bg-amber-500/10 px-3 rounded-xl border border-amber-500/20">
+              <Lock className="w-4 h-4 shrink-0" />
+              <span>Restricted (Admin / Manager Only)</span>
+            </div>
+          )}
         </div>
 
         {/* Metric 3: Low Stock Alerts */}
@@ -210,12 +234,12 @@ export default function Dashboard({ products, onRestockItem, setActiveTab, setSe
                     color: '#f8fafc',
                     fontSize: '12px'
                   }}
-                  formatter={(val) => `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                  formatter={(val) => canViewFinancials ? `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'Restricted'}
                 />
                 <Legend 
                   verticalAlign="bottom" 
                   height={36}
-                  formatter={(value, entry) => (
+                  formatter={(value) => (
                     <span className="text-xs text-slate-300 font-medium px-2">{value}</span>
                   )}
                 />
@@ -236,7 +260,7 @@ export default function Dashboard({ products, onRestockItem, setActiveTab, setSe
                   <span className="text-xs font-semibold text-slate-200">{cat.name}</span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  ${cat.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  {canViewFinancials ? `$${cat.value.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '•••••'}
                 </p>
               </button>
             ))}

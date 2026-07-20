@@ -9,15 +9,12 @@ import {
   RefreshCw, 
   ShoppingCart, 
   Edit3, 
-  AlertCircle, 
-  CheckCircle2, 
-  XCircle,
-  Grid,
   List,
+  Grid,
   ArrowUpDown,
-  Tag,
-  Plus
+  Tag
 } from 'lucide-react';
+import { hasPermission, PERMISSIONS } from '../config/rbac';
 
 export default function ProductList({ 
   products, 
@@ -28,14 +25,18 @@ export default function ProductList({
   onRestockItem,
   onAddToCart,
   onEditProduct,
-  setActiveTab
+  setActiveTab,
+  currentUser
 }) {
   const [statusFilter, setStatusFilter] = useState('All');
-  const [viewMode, setViewMode] = useState('table'); // 'table' | 'grid'
+  const [viewMode, setViewMode] = useState('table');
   const [sortField, setSortField] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  // Categories list
+  const canViewFinancials = hasPermission(currentUser?.role, PERMISSIONS.VIEW_FINANCIALS);
+  const canEditProduct = hasPermission(currentUser?.role, PERMISSIONS.EDIT_PRODUCT);
+  const canExecutePOS = hasPermission(currentUser?.role, PERMISSIONS.EXECUTE_POS);
+
   const categories = [
     { id: 'All', label: 'All Categories', icon: Layers },
     { id: 'Clothing', label: 'Clothing', icon: Shirt },
@@ -45,10 +46,8 @@ export default function ProductList({
 
   // Filtering Logic
   const filteredProducts = products.filter(product => {
-    // Category match
     const matchCat = selectedCategoryFilter === 'All' || product.category === selectedCategoryFilter;
     
-    // Status match
     let matchStatus = true;
     if (statusFilter === 'LowStock') {
       matchStatus = product.stock > 0 && product.stock <= product.minStock;
@@ -58,7 +57,6 @@ export default function ProductList({
       matchStatus = product.stock > product.minStock;
     }
 
-    // Search query match
     const q = searchQuery.toLowerCase().trim();
     const matchQuery = !q || 
       product.name.toLowerCase().includes(q) ||
@@ -89,10 +87,9 @@ export default function ProductList({
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto select-none">
       {/* Category Tabs Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        {/* Tab Buttons */}
         <div className="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto max-w-full">
           {categories.map((cat) => {
             const Icon = cat.icon;
@@ -150,7 +147,6 @@ export default function ProductList({
 
       {/* Filter and Search Sub-bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-        {/* Search Input */}
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -162,7 +158,6 @@ export default function ProductList({
           />
         </div>
 
-        {/* Status Filter Buttons */}
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
           <span className="text-xs text-slate-400 font-medium shrink-0 flex items-center gap-1">
             <Filter className="w-3.5 h-3.5" /> Status:
@@ -186,7 +181,7 @@ export default function ProductList({
         </div>
       </div>
 
-      {/* Product Content: Table or Grid */}
+      {/* Product Content */}
       {filteredProducts.length === 0 ? (
         <div className="p-12 text-center bg-slate-900/40 rounded-2xl border border-slate-800 space-y-3">
           <Tag className="w-10 h-10 text-slate-400 mx-auto" />
@@ -200,7 +195,6 @@ export default function ProductList({
           </button>
         </div>
       ) : viewMode === 'table' ? (
-        /* Table View */
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -214,7 +208,7 @@ export default function ProductList({
                   </th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4 cursor-pointer hover:text-slate-200" onClick={() => toggleSort('price')}>
-                    <div className="flex items-center gap-1">Price / Cost <ArrowUpDown className="w-3 h-3" /></div>
+                    <div className="flex items-center gap-1">Price {canViewFinancials && '/ Cost'} <ArrowUpDown className="w-3 h-3" /></div>
                   </th>
                   <th className="py-3.5 px-4 cursor-pointer hover:text-slate-200" onClick={() => toggleSort('stock')}>
                     <div className="flex items-center gap-1">Stock Level <ArrowUpDown className="w-3 h-3" /></div>
@@ -231,18 +225,15 @@ export default function ProductList({
 
                   return (
                     <tr key={product.id} className="hover:bg-slate-800/40 transition-colors">
-                      {/* Barcode SKU */}
                       <td className="py-3.5 px-4 font-mono font-medium text-indigo-300">
                         {product.sku}
                       </td>
 
-                      {/* Name & Supplier */}
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-slate-100 text-sm">{product.name}</div>
                         <div className="text-[11px] text-slate-400">Supplier: {product.supplier}</div>
                       </td>
 
-                      {/* Category Badge */}
                       <td className="py-3.5 px-4">
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${
                           product.category === 'Clothing' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' :
@@ -253,15 +244,15 @@ export default function ProductList({
                         </span>
                       </td>
 
-                      {/* Pricing */}
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-slate-100">${product.price.toFixed(2)}</div>
-                        <div className="text-[11px] text-slate-400">
-                          Cost: ${product.cost.toFixed(2)} <span className="text-emerald-400">({marginPct}% margin)</span>
-                        </div>
+                        {canViewFinancials && (
+                          <div className="text-[11px] text-slate-400">
+                            Cost: ${product.cost.toFixed(2)} <span className="text-emerald-400">({marginPct}% margin)</span>
+                          </div>
+                        )}
                       </td>
 
-                      {/* Stock Level Indicator */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
                           <span className={`font-bold text-sm ${
@@ -285,7 +276,6 @@ export default function ProductList({
                           )}
                         </div>
 
-                        {/* Progress Bar */}
                         <div className="w-32 h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
                           <div 
                             className={`h-full rounded-full transition-all ${
@@ -295,15 +285,12 @@ export default function ProductList({
                         </div>
                       </td>
 
-                      {/* Location */}
                       <td className="py-3.5 px-4 text-slate-400 text-xs font-mono">
                         {product.location || 'Warehouse A'}
                       </td>
 
-                      {/* Action Buttons */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Quick Restock */}
                           <button
                             onClick={() => onRestockItem(product.id, 10)}
                             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 border border-slate-700 transition-colors"
@@ -312,31 +299,33 @@ export default function ProductList({
                             <RefreshCw className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Edit Product */}
-                          <button
-                            onClick={() => {
-                              onEditProduct(product);
-                              setActiveTab('add-product');
-                            }}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-indigo-400 border border-slate-700 transition-colors"
-                            title="Edit Product"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
+                          {canEditProduct && (
+                            <button
+                              onClick={() => {
+                                onEditProduct(product);
+                                setActiveTab('add-product');
+                              }}
+                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-indigo-400 border border-slate-700 transition-colors"
+                              title="Edit Product"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
-                          {/* Add to POS Cart */}
-                          <button
-                            onClick={() => onAddToCart(product)}
-                            disabled={isOut}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                              isOut 
-                                ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-800' 
-                                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-600/20'
-                            }`}
-                          >
-                            <ShoppingCart className="w-3 h-3" />
-                            <span>+ POS</span>
-                          </button>
+                          {canExecutePOS && (
+                            <button
+                              onClick={() => onAddToCart(product)}
+                              disabled={isOut}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                                isOut 
+                                  ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-800' 
+                                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-600/20'
+                              }`}
+                            >
+                              <ShoppingCart className="w-3 h-3" />
+                              <span>+ POS</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -347,7 +336,6 @@ export default function ProductList({
           </div>
         </div>
       ) : (
-        /* Grid Cards View */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.map((product) => {
             const isLow = product.stock > 0 && product.stock <= product.minStock;
@@ -398,13 +386,15 @@ export default function ProductList({
                   >
                     <RefreshCw className="w-3 h-3" /> +10 Stock
                   </button>
-                  <button
-                    onClick={() => onAddToCart(product)}
-                    disabled={isOut}
-                    className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1 disabled:bg-slate-800 disabled:text-slate-400"
-                  >
-                    <ShoppingCart className="w-3 h-3" /> Add POS
-                  </button>
+                  {canExecutePOS && (
+                    <button
+                      onClick={() => onAddToCart(product)}
+                      disabled={isOut}
+                      className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1 disabled:bg-slate-800 disabled:text-slate-400"
+                    >
+                      <ShoppingCart className="w-3 h-3" /> Add POS
+                    </button>
+                  )}
                 </div>
               </div>
             );

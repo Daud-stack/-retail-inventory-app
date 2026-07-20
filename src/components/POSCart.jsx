@@ -11,15 +11,14 @@ import {
   Banknote, 
   Search, 
   RotateCcw, 
-  Sparkles,
   TrendingUp,
   User,
   Zap,
-  CheckCircle2,
-  Clock,
-  History
+  History,
+  ShieldAlert
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { hasPermission, PERMISSIONS } from '../config/rbac';
 
 export default function POSCart({ 
   products, 
@@ -27,8 +26,12 @@ export default function POSCart({
   setCart, 
   onGenerateReceipt, 
   onOpenScanner,
-  transactions = []
+  transactions = [],
+  currentUser
 }) {
+  const canExecutePOS = hasPermission(currentUser?.role, PERMISSIONS.EXECUTE_POS);
+  const canViewFinancials = hasPermission(currentUser?.role, PERMISSIONS.VIEW_FINANCIALS);
+
   const [posSearch, setPosSearch] = useState('');
   const [selectedPosCategory, setSelectedPosCategory] = useState('All');
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
@@ -36,10 +39,14 @@ export default function POSCart({
   const [discountAmount, setDiscountAmount] = useState(0);
   const [skuInput, setSkuInput] = useState('');
 
-  const taxRate = 8; // 8% sales tax
+  const taxRate = 8;
 
-  // Add product to cart
   const handleAddToCart = (product) => {
+    if (!canExecutePOS) {
+      alert(`Access Denied: Role (${currentUser?.role}) is restricted from POS cart checkout.`);
+      return;
+    }
+
     if (product.stock <= 0) {
       alert(`${product.name} is currently out of stock!`);
       return;
@@ -61,7 +68,6 @@ export default function POSCart({
     });
   };
 
-  // Update Qty
   const updateQty = (id, delta) => {
     setCart(prevCart => {
       return prevCart.map(item => {
@@ -79,12 +85,10 @@ export default function POSCart({
     });
   };
 
-  // Remove Item
   const removeItem = (id) => {
     setCart(prevCart => prevCart.filter(item => item.id !== id));
   };
 
-  // Quick SKU Entry Submit
   const handleSkuSubmit = (e) => {
     e.preventDefault();
     if (!skuInput.trim()) return;
@@ -97,7 +101,6 @@ export default function POSCart({
     }
   };
 
-  // 1-Click Demo Basket Loader for Presentations
   const handleLoadDemoBasket = () => {
     const jacket = products.find(p => p.sku === 'CLN-849201') || products[0];
     const coffee = products.find(p => p.sku === 'GRO-194820') || products[1];
@@ -110,7 +113,6 @@ export default function POSCart({
 
     setCart(demoCart);
 
-    // Trigger subtle confetti burst for demo impact
     try {
       confetti({
         particleCount: 40,
@@ -120,7 +122,6 @@ export default function POSCart({
     } catch (_) {}
   };
 
-  // Dynamic Reactive Calculations
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
   const totalCost = cart.reduce((acc, item) => acc + ((item.cost || 0) * item.qty), 0);
   const grossProfit = Math.max(0, subtotal - totalCost);
@@ -129,7 +130,6 @@ export default function POSCart({
   const taxAmount = (subtotal * taxRate) / 100;
   const total = Math.max(0, subtotal + taxAmount - discountAmount);
 
-  // Filter Catalog Products
   const catalogProducts = products.filter(p => {
     const matchCat = selectedPosCategory === 'All' || p.category === selectedPosCategory;
     const matchSearch = !posSearch || p.name.toLowerCase().includes(posSearch.toLowerCase()) || p.sku.toLowerCase().includes(posSearch.toLowerCase());
@@ -137,6 +137,11 @@ export default function POSCart({
   });
 
   const handleTriggerReceipt = () => {
+    if (!canExecutePOS) {
+      alert(`Access Restricted: User role (${currentUser?.role}) cannot execute sales receipts.`);
+      return;
+    }
+
     if (cart.length === 0) return;
     onGenerateReceipt({
       invoiceId: `INV-${Date.now().toString().slice(-6)}`,
@@ -154,11 +159,25 @@ export default function POSCart({
     });
   };
 
+  if (!canExecutePOS) {
+    return (
+      <div className="p-12 max-w-xl mx-auto text-center space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-100">POS Checkout Restricted</h3>
+        <p className="text-xs text-slate-400">
+          Your current account role (<strong>{currentUser?.role}</strong>) does not have permission to execute point-of-sale checkout transactions.
+        </p>
+        <p className="text-xs text-indigo-400">Please switch to an Admin, Manager, or Cashier profile.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 select-none">
       {/* Top SKU Scan & Demo Shortcut Header Bar */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Fast SKU Barcode Input */}
         <form onSubmit={handleSkuSubmit} className="flex items-center gap-2 w-full md:w-1/2">
           <div className="relative flex-1">
             <ScanLine className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400" />
@@ -178,9 +197,7 @@ export default function POSCart({
           </button>
         </form>
 
-        {/* Demo Controls */}
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end overflow-x-auto">
-          {/* ⚡ 1-CLICK DEMO BASKET BUTTON */}
           <button
             type="button"
             onClick={handleLoadDemoBasket}
@@ -211,7 +228,7 @@ export default function POSCart({
         </div>
       </div>
 
-      {/* Main Split Layout: Catalog Left vs Checkout Cart Right */}
+      {/* Main Split Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Side: Product Catalog Picker */}
         <div className="lg:col-span-7 space-y-4">
@@ -224,7 +241,6 @@ export default function POSCart({
               <span className="text-xs text-slate-400 font-mono">{catalogProducts.length} items available</span>
             </div>
 
-            {/* Search + Category Filter */}
             <div className="flex flex-col sm:flex-row items-center gap-2">
               <div className="relative flex-1 w-full">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -255,7 +271,6 @@ export default function POSCart({
             </div>
           </div>
 
-          {/* Product Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
             {catalogProducts.map((p) => {
               const isOut = p.stock <= 0;
@@ -288,7 +303,9 @@ export default function POSCart({
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
                     <div>
                       <span className="text-sm font-extrabold text-slate-100">${p.price.toFixed(2)}</span>
-                      <span className="text-[10px] text-emerald-400 font-medium ml-1.5">({margin}% margin)</span>
+                      {canViewFinancials && (
+                        <span className="text-[10px] text-emerald-400 font-medium ml-1.5">({margin}% margin)</span>
+                      )}
                     </div>
                     
                     {isOut ? (
@@ -307,7 +324,6 @@ export default function POSCart({
             })}
           </div>
 
-          {/* Recent Completed POS Transactions Activity Ticker */}
           {transactions.length > 0 && (
             <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
               <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
@@ -342,7 +358,7 @@ export default function POSCart({
                   <Receipt className="w-5 h-5 text-emerald-400" />
                   Checkout Cart List
                 </h3>
-                <p className="text-xs text-slate-400">Scanned items for current customer transaction</p>
+                <p className="text-xs text-slate-400">Scanned items for current transaction</p>
               </div>
 
               <span className="font-mono text-xs bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full font-bold">
@@ -350,7 +366,6 @@ export default function POSCart({
               </span>
             </div>
 
-            {/* Customer Selector Preset */}
             <div className="my-3 flex items-center gap-2">
               <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <select
@@ -365,7 +380,6 @@ export default function POSCart({
               </select>
             </div>
 
-            {/* Cart Items List */}
             {cart.length === 0 ? (
               <div className="py-10 text-center text-slate-400 space-y-2 border-b border-slate-800/80">
                 <ShoppingCart className="w-10 h-10 text-slate-400 mx-auto" />
@@ -386,7 +400,6 @@ export default function POSCart({
                       </div>
                     </div>
 
-                    {/* Qty Controls */}
                     <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
                       <button
                         onClick={() => updateQty(item.id, -1)}
@@ -403,7 +416,6 @@ export default function POSCart({
                       </button>
                     </div>
 
-                    {/* Delete Item */}
                     <button
                       onClick={() => removeItem(item.id)}
                       className="p-1.5 text-slate-400 hover:text-red-400 transition-colors"
@@ -416,8 +428,7 @@ export default function POSCart({
             )}
           </div>
 
-          {/* REAL-TIME GROSS PROFIT & MARGIN CALCULATIONS PILL */}
-          {cart.length > 0 && (
+          {cart.length > 0 && canViewFinancials && (
             <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -433,7 +444,6 @@ export default function POSCart({
             </div>
           )}
 
-          {/* Payment Method Selector */}
           <div className="space-y-2.5">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               Payment Method:
@@ -464,7 +474,6 @@ export default function POSCart({
               })}
             </div>
 
-            {/* Calculations Card */}
             <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-1 text-xs">
               <div className="flex justify-between text-slate-400">
                 <span>Subtotal:</span>
@@ -493,7 +502,6 @@ export default function POSCart({
               </div>
             </div>
 
-            {/* GENERATE RECEIPT ACTION BUTTON */}
             <button
               onClick={handleTriggerReceipt}
               disabled={cart.length === 0}

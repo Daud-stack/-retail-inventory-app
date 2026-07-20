@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { INITIAL_PRODUCTS, MOCK_RECENT_TRANSACTIONS } from './data/mockData';
+import { INITIAL_USERS, ROLES } from './config/rbac';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -9,6 +10,7 @@ import BarcodeScannerModal from './components/BarcodeScannerModal';
 import POSCart from './components/POSCart';
 import ReceiptModal from './components/ReceiptModal';
 import QuickCartDrawer from './components/QuickCartDrawer';
+import UserManagementModal from './components/UserManagementModal';
 import { executeCheckoutInvoice } from './services/inventoryEngine';
 
 export default function App() {
@@ -16,6 +18,11 @@ export default function App() {
   const [transactions, setTransactions] = useState(MOCK_RECENT_TRANSACTIONS);
   const [stockMovements, setStockMovements] = useState([]);
   
+  // RBAC User Accounts State
+  const [users, setUsers] = useState(INITIAL_USERS);
+  const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); // Sarah Jenkins (Admin)
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,6 +87,14 @@ export default function App() {
     });
   };
 
+  const handleCreateUser = (newUser) => {
+    setUsers(prev => [...prev, newUser]);
+  };
+
+  const handleSwitchUser = (selectedUser) => {
+    setCurrentUser(selectedUser);
+  };
+
   // Barcode Scanner completion handler
   const handleScanComplete = (sku, detectedProduct) => {
     if (activeTab === 'pos' && detectedProduct) {
@@ -139,6 +154,7 @@ export default function App() {
         cartCount={totalCartUnits}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
+        currentUser={currentUser}
       />
 
       {/* Main View Area */}
@@ -150,6 +166,8 @@ export default function App() {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           cartCount={totalCartUnits}
+          currentUser={currentUser}
+          onOpenUserManagement={() => setIsUserManagementOpen(true)}
           onOpenScanner={() => setIsScannerOpen(true)}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onOpenQuickCart={() => setIsQuickCartOpen(true)}
@@ -163,6 +181,7 @@ export default function App() {
               onRestockItem={handleRestockItem}
               setActiveTab={setActiveTab}
               setSelectedCategoryFilter={setSelectedCategoryFilter}
+              currentUser={currentUser}
             />
           )}
 
@@ -177,6 +196,7 @@ export default function App() {
               onAddToCart={handleAddToCart}
               onEditProduct={(p) => setEditingProduct(p)}
               setActiveTab={setActiveTab}
+              currentUser={currentUser}
             />
           )}
 
@@ -188,6 +208,7 @@ export default function App() {
               onOpenScanner={() => setIsScannerOpen(true)}
               scannedBarcode={scannedBarcode}
               setScannedBarcode={setScannedBarcode}
+              currentUser={currentUser}
             />
           )}
 
@@ -199,10 +220,21 @@ export default function App() {
               onGenerateReceipt={handleGenerateReceipt}
               onOpenScanner={() => setIsScannerOpen(true)}
               transactions={transactions}
+              currentUser={currentUser}
             />
           )}
         </main>
       </div>
+
+      {/* User Management & Role Switcher Modal */}
+      <UserManagementModal 
+        isOpen={isUserManagementOpen}
+        onClose={() => setIsUserManagementOpen(false)}
+        users={users}
+        currentUser={currentUser}
+        onSwitchUser={handleSwitchUser}
+        onCreateUser={handleCreateUser}
+      />
 
       {/* Quick Cart Drawer Overlay */}
       <QuickCartDrawer 

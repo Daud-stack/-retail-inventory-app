@@ -3,8 +3,11 @@ import {
   ScanLine, 
   Save, 
   RotateCcw, 
-  CheckCircle2
+  CheckCircle2,
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
+import { hasPermission, PERMISSIONS } from '../config/rbac';
 
 export default function ProductForm({ 
   onSaveProduct, 
@@ -12,8 +15,12 @@ export default function ProductForm({
   setEditingProduct, 
   onOpenScanner,
   scannedBarcode,
-  setScannedBarcode
+  setScannedBarcode,
+  currentUser
 }) {
+  const canManageProducts = hasPermission(currentUser?.role, PERMISSIONS.ADD_PRODUCT) || 
+                            hasPermission(currentUser?.role, PERMISSIONS.EDIT_PRODUCT);
+
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -29,7 +36,6 @@ export default function ProductForm({
 
   const [notification, setNotification] = useState(null);
 
-  // Populate form if editing or if barcode scanned
   useEffect(() => {
     if (editingProduct) {
       setFormData({
@@ -63,6 +69,11 @@ export default function ProductForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!canManageProducts) {
+      alert(`Access Denied: Your user role (${currentUser?.role}) does not have permission to modify products.`);
+      return;
+    }
+
     if (!formData.name || !formData.sku || !formData.price) {
       alert('Please fill out Product Name, Barcode/SKU, and Price!');
       return;
@@ -109,7 +120,6 @@ export default function ProductForm({
     if (setEditingProduct) setEditingProduct(null);
   };
 
-  // Preset Sample Quick Loaders
   const loadPreset = (type) => {
     if (type === 'clothing') {
       setFormData({
@@ -153,8 +163,23 @@ export default function ProductForm({
     }
   };
 
+  if (!canManageProducts) {
+    return (
+      <div className="p-12 max-w-xl mx-auto text-center space-y-4">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-100">Access Restricted by RBAC</h3>
+        <p className="text-xs text-slate-400">
+          Your current account role (<strong>{currentUser?.role}</strong>) does not have permission to add or modify product specifications.
+        </p>
+        <p className="text-xs text-indigo-400">Please switch to an Admin or Manager account from the top header.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6 select-none">
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-lg">
         <div>
@@ -167,7 +192,6 @@ export default function ProductForm({
           <p className="text-xs text-slate-400">Specify SKU, pricing, category, and minimum stock reorder levels</p>
         </div>
 
-        {/* Quick Sample Presets */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -193,7 +217,6 @@ export default function ProductForm({
         </div>
       </div>
 
-      {/* Success Notification Banner */}
       {notification && (
         <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-2">
@@ -203,10 +226,8 @@ export default function ProductForm({
         </div>
       )}
 
-      {/* Main Form */}
       <form onSubmit={handleSubmit} className="bg-slate-900/80 border border-slate-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Barcode / SKU with Scan Button */}
           <div className="sm:col-span-2">
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Barcode / SKU Code <span className="text-red-400">*</span>
@@ -235,7 +256,6 @@ export default function ProductForm({
             </div>
           </div>
 
-          {/* Product Name */}
           <div className="sm:col-span-2">
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Product Name <span className="text-red-400">*</span>
@@ -251,7 +271,6 @@ export default function ProductForm({
             />
           </div>
 
-          {/* Category Dropdown */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Retail Category <span className="text-red-400">*</span>
@@ -273,7 +292,6 @@ export default function ProductForm({
             </div>
           </div>
 
-          {/* Unit Type */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Measurement Unit
@@ -294,7 +312,6 @@ export default function ProductForm({
             </select>
           </div>
 
-          {/* Selling Price ($) */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Retail Selling Price ($) <span className="text-red-400">*</span>
@@ -314,7 +331,6 @@ export default function ProductForm({
             </div>
           </div>
 
-          {/* Cost Price ($) */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Unit Purchase Cost ($)
@@ -333,7 +349,6 @@ export default function ProductForm({
             </div>
           </div>
 
-          {/* Initial Stock Quantity */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Initial Stock Quantity
@@ -348,7 +363,6 @@ export default function ProductForm({
             />
           </div>
 
-          {/* Low Stock Reorder Threshold */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Reorder Alert Threshold
@@ -363,7 +377,6 @@ export default function ProductForm({
             />
           </div>
 
-          {/* Supplier Name */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Supplier / Distributor
@@ -378,7 +391,6 @@ export default function ProductForm({
             />
           </div>
 
-          {/* Storage Location */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
               Store / Aisle Location
@@ -394,7 +406,6 @@ export default function ProductForm({
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-4">
           <button
             type="button"
