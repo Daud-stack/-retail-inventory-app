@@ -15,10 +15,12 @@ import {
   User,
   Zap,
   History,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { hasPermission, PERMISSIONS } from '../config/rbac';
+import { getSmartCartRecommendations } from '../services/dataScienceEngine';
 
 export default function POSCart({ 
   products, 
@@ -40,6 +42,9 @@ export default function POSCart({
   const [skuInput, setSkuInput] = useState('');
 
   const taxRate = 8;
+
+  // Smart Data Science Cross-Sell Recommendations
+  const smartRecommendations = getSmartCartRecommendations(cart, products);
 
   const handleAddToCart = (product) => {
     if (!canExecutePOS) {
@@ -349,7 +354,7 @@ export default function POSCart({
           )}
         </div>
 
-        {/* Right Side: Interactive POS Checkout Cart */}
+        {/* Right Side: Interactive POS Checkout Cart & Data Science Recommendations */}
         <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -365,6 +370,31 @@ export default function POSCart({
                 {cart.reduce((acc, item) => acc + item.qty, 0)} Items
               </span>
             </div>
+
+            {/* DATA SCIENCE SMART CROSS-SELL RECOMMENDATIONS BAR */}
+            {smartRecommendations.length > 0 && (
+              <div className="my-3 p-3 rounded-2xl bg-gradient-to-r from-purple-950/60 to-indigo-950/60 border border-purple-500/30 space-y-2">
+                <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  Frequently Bought Together (AI Recommendation):
+                </span>
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {smartRecommendations.map((rec) => (
+                    <button
+                      key={rec.product.id}
+                      onClick={() => handleAddToCart(rec.product)}
+                      className="px-2.5 py-1.5 rounded-xl bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-left transition-all shrink-0 flex items-center gap-2"
+                    >
+                      <div>
+                        <span className="font-bold text-slate-100 text-[11px] block">{rec.product.name}</span>
+                        <span className="text-[10px] text-purple-300 font-semibold">${rec.product.price.toFixed(2)} ({rec.confidence}% match)</span>
+                      </div>
+                      <Plus className="w-3.5 h-3.5 text-purple-300" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="my-3 flex items-center gap-2">
               <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />

@@ -12,6 +12,7 @@ import ReceiptModal from './components/ReceiptModal';
 import QuickCartDrawer from './components/QuickCartDrawer';
 import UserManagementModal from './components/UserManagementModal';
 import ForecastingView from './components/ForecastingView';
+import DataScienceAnalyticsView from './components/DataScienceAnalyticsView';
 import { executeCheckoutInvoice } from './services/inventoryEngine';
 
 export default function App() {
@@ -218,6 +219,14 @@ export default function App() {
               products={products}
               onRestockItem={handleRestockItem}
               currentUser={currentUser}
+            />
+          )}
+
+          {activeTab === 'datascience' && (
+            <DataScienceAnalyticsView 
+              products={products}
+              onAddToCart={handleAddToCart}
+              setActiveTab={setActiveTab}
             />
           )}
 

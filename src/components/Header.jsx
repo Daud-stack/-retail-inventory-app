@@ -38,6 +38,7 @@ export default function Header({
     products: { title: 'Product Catalog', subtitle: 'Filter Clothing, Groceries & Misc' },
     'add-product': { title: 'Stock Entry', subtitle: 'Add Item or Scan Barcode SKU' },
     forecasting: { title: 'Stock Demand Forecasting', subtitle: 'Time Series Predictions & Stockout Timelines' },
+    datascience: { title: 'Retail Intelligence & Data Science', subtitle: 'Market Basket Analysis (Apriori), FSN Velocity & ABC Pareto Rules' },
     pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' }
   };
 

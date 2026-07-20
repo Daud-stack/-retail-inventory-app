@@ -5,6 +5,7 @@ import {
   PackagePlus, 
   ShoppingCart, 
   TrendingUp,
+  BrainCircuit,
   Layers, 
   Zap,
   AlertTriangle,
@@ -50,6 +51,12 @@ export default function Sidebar({
       label: 'Stock Forecasting',
       icon: TrendingUp,
       desc: 'Time Series Predictions'
+    },
+    {
+      id: 'datascience',
+      label: 'Retail Intelligence',
+      icon: BrainCircuit,
+      desc: 'Market Basket & FSN'
     },
     {
       id: 'pos',
