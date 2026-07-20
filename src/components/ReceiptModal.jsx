@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Printer, 
   CheckCircle2, 
@@ -10,9 +10,23 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import confetti from 'canvas-confetti';
 
 export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFinalizeCheckout }) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Trigger celebratory confetti burst for live demo presentation
+      try {
+        confetti({
+          particleCount: 70,
+          spread: 80,
+          origin: { y: 0.5 }
+        });
+      } catch (_) {}
+    }
+  }, [isOpen]);
 
   if (!isOpen || !invoiceMeta) return null;
 
@@ -48,7 +62,15 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
   };
 
   const handleDone = () => {
-    onFinalizeCheckout();
+    try {
+      confetti({
+        particleCount: 100,
+        spread: 100,
+        origin: { y: 0.6 }
+      });
+    } catch (_) {}
+
+    onFinalizeCheckout(invoiceMeta);
     onClose();
   };
 
@@ -94,12 +116,12 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
             {/* Customer & Payment Method info */}
             <div className="flex justify-between text-[11px] text-slate-700 py-1 border-b border-dashed border-slate-300">
               <div>
-                <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">PAYMENT METHOD</span>
-                <span className="font-bold uppercase text-slate-900">{invoiceMeta.paymentMethod}</span>
+                <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">CUSTOMER</span>
+                <span className="font-bold text-slate-900">{invoiceMeta.customer || 'Walk-in Customer'}</span>
               </div>
               <div className="text-right">
-                <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">REGISTER</span>
-                <span className="font-bold text-slate-900">Terminal #01</span>
+                <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">PAYMENT</span>
+                <span className="font-bold uppercase text-slate-900">{invoiceMeta.paymentMethod}</span>
               </div>
             </div>
 

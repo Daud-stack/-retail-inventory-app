@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { INITIAL_PRODUCTS } from './data/mockData';
+import { INITIAL_PRODUCTS, MOCK_RECENT_TRANSACTIONS } from './data/mockData';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
@@ -8,9 +8,13 @@ import ProductForm from './components/ProductForm';
 import BarcodeScannerModal from './components/BarcodeScannerModal';
 import POSCart from './components/POSCart';
 import ReceiptModal from './components/ReceiptModal';
+import { executeCheckoutInvoice } from './services/inventoryEngine';
 
 export default function App() {
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [transactions, setTransactions] = useState(MOCK_RECENT_TRANSACTIONS);
+  const [stockMovements, setStockMovements] = useState([]);
+  
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,19 +98,34 @@ export default function App() {
     setIsReceiptOpen(true);
   };
 
-  // Finalize Checkout & Deduct Inventory Stock
-  const handleFinalizeCheckout = () => {
-    setProducts(prevProducts => {
-      return prevProducts.map(p => {
-        const cartItem = cart.find(ci => ci.id === p.id);
-        if (cartItem) {
-          return { ...p, stock: Math.max(0, p.stock - cartItem.qty) };
-        }
-        return p;
-      });
-    });
-    setCart([]);
-    setIsReceiptOpen(false);
+  // Finalize Checkout, Deduct Inventory Stock & Log Movements
+  const handleFinalizeCheckout = (meta) => {
+    const activeMeta = meta || receiptMeta;
+    if (!activeMeta || cart.length === 0) return;
+
+    try {
+      // Execute engine stock deduction & audit logging
+      const res = executeCheckoutInvoice(products, cart, activeMeta, stockMovements);
+      setProducts(res.products);
+      setStockMovements(res.stockMovements);
+
+      // Record transaction history record
+      const newTx = {
+        id: activeMeta.invoiceId,
+        customer: activeMeta.customer || 'Walk-in Customer',
+        itemsCount: cart.reduce((acc, item) => acc + item.qty, 0),
+        total: activeMeta.total,
+        date: 'Just Now',
+        status: 'Completed'
+      };
+
+      setTransactions([newTx, ...transactions]);
+      setCart([]);
+      setIsReceiptOpen(false);
+    } catch (err) {
+      console.error('Checkout finalization error:', err);
+      alert(`Checkout Error: ${err.message}`);
+    }
   };
 
   return (
@@ -175,6 +194,7 @@ export default function App() {
               setCart={setCart}
               onGenerateReceipt={handleGenerateReceipt}
               onOpenScanner={() => setIsScannerOpen(true)}
+              transactions={transactions}
             />
           )}
         </main>

@@ -6,32 +6,33 @@ import {
   Minus, 
   ScanLine, 
   Receipt, 
-  DollarSign, 
   CreditCard, 
   Wallet, 
   Banknote, 
   Search, 
-  Check, 
-  AlertCircle,
-  Shirt,
-  ShoppingBag,
-  Box,
-  RotateCcw,
+  RotateCcw, 
   Sparkles,
   TrendingUp,
-  PieChart
+  User,
+  Zap,
+  CheckCircle2,
+  Clock,
+  History
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export default function POSCart({ 
   products, 
   cart, 
   setCart, 
   onGenerateReceipt, 
-  onOpenScanner 
+  onOpenScanner,
+  transactions = []
 }) {
   const [posSearch, setPosSearch] = useState('');
   const [selectedPosCategory, setSelectedPosCategory] = useState('All');
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
+  const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [discountAmount, setDiscountAmount] = useState(0);
   const [skuInput, setSkuInput] = useState('');
 
@@ -96,6 +97,29 @@ export default function POSCart({
     }
   };
 
+  // 1-Click Demo Basket Loader for Presentations
+  const handleLoadDemoBasket = () => {
+    const jacket = products.find(p => p.sku === 'CLN-849201') || products[0];
+    const coffee = products.find(p => p.sku === 'GRO-194820') || products[1];
+    const mouse = products.find(p => p.sku === 'MSC-774910') || products[2];
+
+    const demoCart = [];
+    if (jacket && jacket.stock > 0) demoCart.push({ ...jacket, qty: 1 });
+    if (coffee && coffee.stock > 0) demoCart.push({ ...coffee, qty: 2 });
+    if (mouse && mouse.stock > 0) demoCart.push({ ...mouse, qty: 1 });
+
+    setCart(demoCart);
+
+    // Trigger subtle confetti burst for demo impact
+    try {
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+    } catch (_) {}
+  };
+
   // Dynamic Reactive Calculations
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
   const totalCost = cart.reduce((acc, item) => acc + ((item.cost || 0) * item.qty), 0);
@@ -117,6 +141,7 @@ export default function POSCart({
     onGenerateReceipt({
       invoiceId: `INV-${Date.now().toString().slice(-6)}`,
       dateStr: new Date().toLocaleString(),
+      customer: customerName,
       subtotal,
       totalCost,
       grossProfit,
@@ -131,14 +156,15 @@ export default function POSCart({
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top SKU Scan Header Bar */}
+      {/* Top SKU Scan & Demo Shortcut Header Bar */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Fast SKU Barcode Input */}
         <form onSubmit={handleSkuSubmit} className="flex items-center gap-2 w-full md:w-1/2">
           <div className="relative flex-1">
             <ScanLine className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400" />
             <input
               type="text"
-              placeholder="Scan barcode SKU (e.g. CLN-849201)..."
+              placeholder="Scan or type barcode SKU (e.g. CLN-849201)..."
               value={skuInput}
               onChange={(e) => setSkuInput(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 font-mono text-xs text-indigo-300 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-all"
@@ -152,23 +178,34 @@ export default function POSCart({
           </button>
         </form>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+        {/* Demo Controls */}
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end overflow-x-auto">
+          {/* ⚡ 1-CLICK DEMO BASKET BUTTON */}
+          <button
+            type="button"
+            onClick={handleLoadDemoBasket}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 shrink-0"
+          >
+            <Zap className="w-4 h-4" />
+            <span>⚡ Load Demo Basket</span>
+          </button>
+
           <button
             type="button"
             onClick={onOpenScanner}
-            className="px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all flex items-center gap-2"
+            className="px-3.5 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
           >
             <ScanLine className="w-4 h-4" />
-            <span>Optical Barcode Camera</span>
+            <span>Camera Scanner</span>
           </button>
 
           {cart.length > 0 && (
             <button
               onClick={() => setCart([])}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700 text-xs font-semibold transition-colors flex items-center gap-1 shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Clear Cart</span>
+              <span>Clear</span>
             </button>
           )}
         </div>
@@ -184,7 +221,7 @@ export default function POSCart({
                 <ShoppingCart className="w-4 h-4 text-indigo-400" />
                 Quick Add Catalog
               </h3>
-              <span className="text-xs text-slate-400 font-mono">{catalogProducts.length} items</span>
+              <span className="text-xs text-slate-400 font-mono">{catalogProducts.length} items available</span>
             </div>
 
             {/* Search + Category Filter */}
@@ -269,18 +306,43 @@ export default function POSCart({
               );
             })}
           </div>
+
+          {/* Recent Completed POS Transactions Activity Ticker */}
+          {transactions.length > 0 && (
+            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
+              <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
+                <History className="w-3.5 h-3.5 text-cyan-400" />
+                Recent POS Sales Audit History
+              </h4>
+              <div className="divide-y divide-slate-800/60 text-xs">
+                {transactions.slice(0, 3).map((tx) => (
+                  <div key={tx.id} className="py-1.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[11px] font-bold text-indigo-400">{tx.id}</span>
+                      <span className="text-slate-300">{tx.customer}</span>
+                      <span className="text-[10px] text-slate-400">({tx.itemsCount} items)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-emerald-400">${tx.total.toFixed(2)}</span>
+                      <span className="text-[10px] text-slate-400">{tx.date}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Interactive POS Checkout Cart */}
         <div className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h3 className="font-extrabold text-slate-100 text-base flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-emerald-400" />
                   Checkout Cart List
                 </h3>
-                <p className="text-xs text-slate-400">Scanned items for current transaction</p>
+                <p className="text-xs text-slate-400">Scanned items for current customer transaction</p>
               </div>
 
               <span className="font-mono text-xs bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-3 py-1 rounded-full font-bold">
@@ -288,15 +350,30 @@ export default function POSCart({
               </span>
             </div>
 
+            {/* Customer Selector Preset */}
+            <div className="my-3 flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <select
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+              >
+                <option value="Walk-in Customer">Walk-in Customer</option>
+                <option value="Sarah Jenkins (VIP Member)">Sarah Jenkins (VIP Member)</option>
+                <option value="Corporate Account #42">Corporate Account #42</option>
+                <option value="Urban Retail Partners">Urban Retail Partners</option>
+              </select>
+            </div>
+
             {/* Cart Items List */}
             {cart.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 space-y-2 border-b border-slate-800/80">
+              <div className="py-10 text-center text-slate-400 space-y-2 border-b border-slate-800/80">
                 <ShoppingCart className="w-10 h-10 text-slate-400 mx-auto" />
                 <p className="text-xs font-medium">Cart is currently empty</p>
-                <p className="text-[11px] text-slate-400">Scan a barcode or select items from catalog.</p>
+                <p className="text-[11px] text-slate-400">Click <strong>⚡ Load Demo Basket</strong> above for live demo!</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/80 max-h-56 overflow-y-auto pr-1 my-2">
+              <div className="divide-y divide-slate-800/80 max-h-48 overflow-y-auto pr-1 my-1">
                 {cart.map((item) => (
                   <div key={item.id} className="py-2.5 flex items-center justify-between gap-3">
                     <div className="flex-1">
@@ -357,7 +434,7 @@ export default function POSCart({
           )}
 
           {/* Payment Method Selector */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
               Payment Method:
             </span>
@@ -388,7 +465,7 @@ export default function POSCart({
             </div>
 
             {/* Calculations Card */}
-            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-1.5 text-xs">
+            <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-1 text-xs">
               <div className="flex justify-between text-slate-400">
                 <span>Subtotal:</span>
                 <span className="font-semibold text-slate-200">${subtotal.toFixed(2)}</span>
