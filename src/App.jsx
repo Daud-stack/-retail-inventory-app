@@ -29,7 +29,25 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); // Alex Thorne (Super Admin)
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('superadmin');
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  const handleSwitchUser = (selectedUser) => {
+    setCurrentUser(selectedUser);
+    setIsUserManagementOpen(false);
+    if (selectedUser.role === ROLES.SUPER_ADMIN) {
+      setActiveTab('superadmin');
+    } else if (selectedUser.role === ROLES.CASHIER) {
+      setActiveTab('pos');
+    } else if (selectedUser.role === ROLES.CLERK) {
+      setActiveTab('products');
+    } else {
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState([]);
@@ -97,23 +115,6 @@ export default function App() {
     setUsers(prev => [...prev, newUser]);
   };
 
-  const handleSwitchUser = (selectedUser) => {
-    setCurrentUser(selectedUser);
-    if (selectedUser.role === ROLES.SUPER_ADMIN) {
-      setActiveTab('superadmin');
-    } else if (selectedUser.role === ROLES.CASHIER) {
-      setActiveTab('pos');
-    } else if (selectedUser.role === ROLES.CLERK) {
-      setActiveTab('products');
-    } else if (activeTab === 'superadmin') {
-      setActiveTab('dashboard');
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-  };
-
   // Unauthenticated Guard Screen
   if (!isLoggedIn) {
     return (
@@ -136,36 +137,11 @@ export default function App() {
     );
   }
 
-  // Dedicated Super Admin View Mode Guard
+  // Dedicated Super Admin View Mode Guard: Auto-redirect non-SuperAdmins to Dashboard
   if (activeTab === 'superadmin') {
-    if (!hasPermission(currentUser.role, PERMISSIONS.VIEW_SUPER_ADMIN)) {
-      return (
-        <div className="flex h-screen bg-slate-950 text-slate-100 font-sans items-center justify-center p-6 text-center select-none">
-          <div className="bg-slate-900 border border-red-500/30 rounded-3xl max-w-md w-full p-8 space-y-4 shadow-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto">
-              <ShieldAlert className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-100">Super Admin Access Denied</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Your logged-in role (<strong className="text-red-400">{currentUser.role}</strong>) does not have authorization to view the Multi-Tenant Super Admin Command Center.
-            </p>
-            <div className="flex justify-center gap-3 pt-2">
-              <button
-                onClick={() => setActiveTab(currentUser.role === ROLES.CASHIER ? 'pos' : 'products')}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs border border-slate-700"
-              >
-                Go to Allowed Store View
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md"
-              >
-                Log Out
-              </button>
-            </div>
-          </div>
-        </div>
-      );
+    if (!hasPermission(currentUser?.role, PERMISSIONS.VIEW_SUPER_ADMIN)) {
+      setActiveTab('dashboard');
+      return null;
     }
 
     return (
