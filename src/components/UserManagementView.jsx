@@ -60,6 +60,10 @@ export default function UserManagementView({
     setActiveSubTab('accounts');
   };
 
+  const displayUsers = currentUser?.role === ROLES.SUPER_ADMIN 
+    ? users 
+    : users.filter(u => u.role !== ROLES.SUPER_ADMIN);
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6 select-none">
       {/* Header Banner */}
@@ -133,7 +137,7 @@ export default function UserManagementView({
       {/* SubTab 1: Active Role Accounts List */}
       {activeSubTab === 'accounts' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {users.map((usr) => {
+          {displayUsers.map((usr) => {
             const isCurrent = currentUser?.id === usr.id;
             const isSuperAdminAccount = usr.role === ROLES.SUPER_ADMIN;
             const canSwitchToThisUser = !isSuperAdminAccount || currentUser?.role === ROLES.SUPER_ADMIN;

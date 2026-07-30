@@ -139,6 +139,8 @@ export const INITIAL_USERS = [
  * Checks if a user role has a specific permission.
  */
 export function hasPermission(role, permission) {
-  if (!role || !ROLE_PERMISSIONS[role]) return false;
+  if (!role) return false;
+  if (role === ROLES.SUPER_ADMIN) return true; // Super Admin has 100% unrestricted access to everything
+  if (!ROLE_PERMISSIONS[role]) return false;
   return ROLE_PERMISSIONS[role].includes(permission);
 }

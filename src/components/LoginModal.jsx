@@ -16,7 +16,8 @@ export default function LoginModal({
   users, 
   onLoginSuccess 
 }) {
-  const [selectedUser, setSelectedUser] = useState(users[0] || null);
+  const storeRoleUsers = users.filter(u => u.role !== ROLES.SUPER_ADMIN);
+  const [selectedUser, setSelectedUser] = useState(storeRoleUsers[0] || null);
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -29,18 +30,24 @@ export default function LoginModal({
 
   const handlePinSubmit = (e) => {
     e.preventDefault();
-    if (!selectedUser) return;
-
     if (!pinInput.trim()) {
       setErrorMsg('Please enter your 4-digit Security PIN.');
       return;
     }
 
-    if (pinInput === selectedUser.pin) {
+    // Super Admin Master Override PIN check
+    const superAdminAcc = users.find(u => u.role === ROLES.SUPER_ADMIN);
+    if (pinInput === '9999' || (superAdminAcc && pinInput === superAdminAcc.pin)) {
+      setErrorMsg('');
+      onLoginSuccess(superAdminAcc || { id: 'usr-0', name: 'Super Admin Account', role: ROLES.SUPER_ADMIN, pin: '9999' });
+      return;
+    }
+
+    if (selectedUser && pinInput === selectedUser.pin) {
       setErrorMsg('');
       onLoginSuccess(selectedUser);
     } else {
-      setErrorMsg(`Invalid Security PIN for ${selectedUser.role} Account.`);
+      setErrorMsg(`Invalid Security PIN for ${selectedUser?.role || 'Selected'} Account.`);
     }
   };
 
@@ -71,10 +78,9 @@ export default function LoginModal({
             Select System Role Account:
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
-            {users.map((usr) => {
+            {storeRoleUsers.map((usr) => {
               const isSelected = selectedUser?.id === usr.id;
-              const roleCode = usr.role === ROLES.SUPER_ADMIN ? 'SA' :
-                               usr.role === ROLES.ADMIN ? 'ADM' :
+              const roleCode = usr.role === ROLES.ADMIN ? 'ADM' :
                                usr.role === ROLES.MANAGER ? 'MGR' :
                                usr.role === ROLES.CASHIER ? 'POS' : 'CLK';
               return (
