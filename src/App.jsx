@@ -115,6 +115,55 @@ export default function App() {
     setUsers(prev => [...prev, newUser]);
   };
 
+  // Barcode Scanner completion handler
+  const handleScanComplete = (sku, detectedProduct) => {
+    if (activeTab === 'pos' && detectedProduct) {
+      handleAddToCart(detectedProduct);
+    } else {
+      setScannedBarcode(sku);
+      if (detectedProduct) {
+        setEditingProduct(detectedProduct);
+      }
+      if (activeTab !== 'add-product') {
+        setActiveTab('add-product');
+      }
+    }
+  };
+
+  // Generate Receipt Trigger
+  const handleGenerateReceipt = (meta) => {
+    setReceiptMeta(meta);
+    setIsReceiptOpen(true);
+  };
+
+  // Finalize Checkout, Deduct Inventory Stock & Log Movements
+  const handleFinalizeCheckout = (meta) => {
+    const activeMeta = meta || receiptMeta;
+    if (!activeMeta || cart.length === 0) return;
+
+    try {
+      const res = executeCheckoutInvoice(products, cart, activeMeta, stockMovements);
+      setProducts(res.products);
+      setStockMovements(res.stockMovements);
+
+      const newTx = {
+        id: activeMeta.invoiceId,
+        customer: activeMeta.customer || 'Walk-in Customer',
+        itemsCount: cart.reduce((acc, item) => acc + item.qty, 0),
+        total: activeMeta.total,
+        date: 'Just Now',
+        status: 'Completed'
+      };
+
+      setTransactions([newTx, ...transactions]);
+      setCart([]);
+      setIsReceiptOpen(false);
+    } catch (err) {
+      console.error('Checkout finalization error:', err);
+      alert(`Checkout Error: ${err.message}`);
+    }
+  };
+
   // Derive safe, permission-guarded active tab for current user role
   const effectiveTab = (activeTab === 'superadmin' && hasPermission(currentUser?.role, PERMISSIONS.VIEW_SUPER_ADMIN))
     ? 'superadmin'
