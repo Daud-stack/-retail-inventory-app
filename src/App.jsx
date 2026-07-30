@@ -115,6 +115,13 @@ export default function App() {
     setUsers(prev => [...prev, newUser]);
   };
 
+  // Derive safe, permission-guarded active tab for current user role
+  const effectiveTab = (activeTab === 'superadmin' && hasPermission(currentUser?.role, PERMISSIONS.VIEW_SUPER_ADMIN))
+    ? 'superadmin'
+    : (activeTab === 'superadmin'
+        ? (currentUser?.role === ROLES.CASHIER ? 'pos' : currentUser?.role === ROLES.CLERK ? 'products' : 'dashboard')
+        : activeTab);
+
   // Unauthenticated Guard Screen
   if (!isLoggedIn) {
     return (
@@ -137,13 +144,8 @@ export default function App() {
     );
   }
 
-  // Dedicated Super Admin View Mode Guard: Auto-redirect non-SuperAdmins to Dashboard
-  if (activeTab === 'superadmin') {
-    if (!hasPermission(currentUser?.role, PERMISSIONS.VIEW_SUPER_ADMIN)) {
-      setActiveTab('dashboard');
-      return null;
-    }
-
+  // Dedicated Super Admin View Mode for Authorized Super Admins
+  if (effectiveTab === 'superadmin') {
     return (
       <div className="h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
         <SuperAdminCommandCenter 
@@ -168,7 +170,7 @@ export default function App() {
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
       {/* Sidebar Navigation (Desktop + Mobile Drawer) */}
       <Sidebar 
-        activeTab={activeTab}
+        activeTab={effectiveTab}
         setActiveTab={setActiveTab}
         lowStockCount={lowStockCount}
         cartCount={totalCartUnits}
@@ -181,7 +183,7 @@ export default function App() {
       <div className="flex-1 flex flex-col h-screen overflow-y-auto">
         {/* Top Header */}
         <Header 
-          activeTab={activeTab}
+          activeTab={effectiveTab}
           setActiveTab={setActiveTab}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -196,8 +198,8 @@ export default function App() {
 
         {/* Dynamic Section Renderer */}
         <main className="flex-1 pb-12">
-          {activeTab === 'dashboard' && (
-            hasPermission(currentUser.role, PERMISSIONS.VIEW_DASHBOARD) ? (
+          {effectiveTab === 'dashboard' && (
+            hasPermission(currentUser?.role, PERMISSIONS.VIEW_DASHBOARD) ? (
               <Dashboard 
                 products={products}
                 onRestockItem={handleRestockItem}
@@ -207,16 +209,16 @@ export default function App() {
               />
             ) : (
               <AccessRestrictedBanner 
-                role={currentUser.role} 
+                role={currentUser?.role} 
                 tabName="Dashboard & Financial Analytics" 
-                onNavigate={() => setActiveTab(currentUser.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
                 onLogout={handleLogout}
               />
             )
           )}
 
-          {activeTab === 'products' && (
-            hasPermission(currentUser.role, PERMISSIONS.VIEW_PRODUCTS) ? (
+          {effectiveTab === 'products' && (
+            hasPermission(currentUser?.role, PERMISSIONS.VIEW_PRODUCTS) ? (
               <ProductList 
                 products={products}
                 selectedCategoryFilter={selectedCategoryFilter}
@@ -231,7 +233,7 @@ export default function App() {
               />
             ) : (
               <AccessRestrictedBanner 
-                role={currentUser.role} 
+                role={currentUser?.role} 
                 tabName="Product Catalog" 
                 onNavigate={() => setActiveTab('pos')}
                 onLogout={handleLogout}
@@ -239,8 +241,8 @@ export default function App() {
             )
           )}
 
-          {activeTab === 'add-product' && (
-            hasPermission(currentUser.role, PERMISSIONS.ADD_PRODUCT) ? (
+          {effectiveTab === 'add-product' && (
+            hasPermission(currentUser?.role, PERMISSIONS.ADD_PRODUCT) ? (
               <ProductForm 
                 onSaveProduct={handleSaveProduct}
                 editingProduct={editingProduct}
@@ -252,16 +254,16 @@ export default function App() {
               />
             ) : (
               <AccessRestrictedBanner 
-                role={currentUser.role} 
+                role={currentUser?.role} 
                 tabName="Stock Manager & Add Product" 
-                onNavigate={() => setActiveTab(currentUser.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
                 onLogout={handleLogout}
               />
             )
           )}
 
-          {activeTab === 'forecasting' && (
-            hasPermission(currentUser.role, PERMISSIONS.VIEW_DASHBOARD) ? (
+          {effectiveTab === 'forecasting' && (
+            hasPermission(currentUser?.role, PERMISSIONS.VIEW_DASHBOARD) ? (
               <ForecastingView 
                 products={products}
                 onRestockItem={handleRestockItem}
@@ -269,16 +271,16 @@ export default function App() {
               />
             ) : (
               <AccessRestrictedBanner 
-                role={currentUser.role} 
+                role={currentUser?.role} 
                 tabName="Stock Demand Forecasting" 
-                onNavigate={() => setActiveTab(currentUser.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
                 onLogout={handleLogout}
               />
             )
           )}
 
-          {activeTab === 'datascience' && (
-            hasPermission(currentUser.role, PERMISSIONS.VIEW_FINANCIALS) ? (
+          {effectiveTab === 'datascience' && (
+            hasPermission(currentUser?.role, PERMISSIONS.VIEW_FINANCIALS) ? (
               <DataScienceAnalyticsView 
                 products={products}
                 onAddToCart={handleAddToCart}
@@ -286,16 +288,16 @@ export default function App() {
               />
             ) : (
               <AccessRestrictedBanner 
-                role={currentUser.role} 
+                role={currentUser?.role} 
                 tabName="Retail Intelligence & Data Science" 
-                onNavigate={() => setActiveTab(currentUser.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
                 onLogout={handleLogout}
               />
             )
           )}
 
-          {activeTab === 'pos' && (
-            hasPermission(currentUser.role, PERMISSIONS.EXECUTE_POS) ? (
+          {effectiveTab === 'pos' && (
+            hasPermission(currentUser?.role, PERMISSIONS.EXECUTE_POS) ? (
               <POSCart 
                 products={products}
                 cart={cart}
@@ -307,7 +309,7 @@ export default function App() {
               />
             ) : (
               <AccessRestrictedBanner 
-                role={currentUser.role} 
+                role={currentUser?.role} 
                 tabName="POS & Checkout Invoicing" 
                 onNavigate={() => setActiveTab('products')}
                 onLogout={handleLogout}
