@@ -1,0 +1,1017 @@
+import React, { useState } from 'react';
+import { 
+  Building2, 
+  Users, 
+  KeyRound, 
+  AlertTriangle, 
+  RefreshCw, 
+  Sliders, 
+  Activity, 
+  CheckCircle2, 
+  Clock, 
+  Plus, 
+  Search, 
+  ShieldCheck, 
+  Layers, 
+  FileText, 
+  ChevronDown, 
+  LogOut, 
+  Bell, 
+  Key, 
+  Database, 
+  Server, 
+  TrendingUp,
+  LayoutDashboard,
+  Store,
+  Shield,
+  Zap,
+  Check
+} from 'lucide-react';
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Legend, 
+  CartesianGrid 
+} from 'recharts';
+
+import { 
+  MOCK_TENANTS, 
+  MOCK_LICENSES, 
+  MOCK_SYSTEM_ALERTS, 
+  MOCK_GLOBAL_CONFIG, 
+  MOCK_SYSTEM_HEALTH, 
+  MOCK_STORE_BAR_DATA, 
+  MOCK_LICENSE_DONUT_DATA 
+} from '../data/mockSuperAdminData';
+
+export default function SuperAdminCommandCenter({ 
+  currentUser, 
+  onSwitchUser, 
+  setActiveTab: setParentActiveTab 
+}) {
+  // Navigation & Sub-Tab states
+  const [sidebarNav, setSidebarNav] = useState('command-center');
+  const [topTab, setTopTab] = useState('overview'); // overview, stores, licenses, config, health
+  
+  // Data States
+  const [tenants, setTenants] = useState(MOCK_TENANTS);
+  const [licenses, setLicenses] = useState(MOCK_LICENSES);
+  const [selectedTenantFilter, setSelectedTenantFilter] = useState('all');
+  const [globalConfig, setGlobalConfig] = useState(MOCK_GLOBAL_CONFIG);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modal / Form States
+  const [isAddStoreOpen, setIsAddStoreOpen] = useState(false);
+  const [newStoreName, setNewStoreName] = useState('');
+  const [newStoreLocation, setNewStoreLocation] = useState('');
+  const [newStoreManager, setNewStoreManager] = useState('');
+
+  // Action: Handle manual sync/refresh
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 600);
+  };
+
+  // Action: Add new store tenant
+  const handleCreateStore = (e) => {
+    e.preventDefault();
+    if (!newStoreName.trim()) return;
+    const newStore = {
+      id: `tenant-${tenants.length + 1}`,
+      name: newStoreName,
+      code: `STR-00${tenants.length + 1}`,
+      location: newStoreLocation || 'Main Hub',
+      manager: newStoreManager || 'Store Manager',
+      email: `${newStoreName.toLowerCase().replace(/\s+/g, '')}@nexusretail.com`,
+      status: 'Active',
+      plan: 'Starter',
+      totalProducts: 0,
+      totalStaff: 1,
+      monthlyRevenue: 0,
+      createdDate: new Date().toISOString().split('T')[0]
+    };
+
+    const newLicense = {
+      id: `LIC-${Math.floor(10000 + Math.random() * 90000)}`,
+      tenantId: newStore.id,
+      tenantName: newStore.name,
+      plan: 'Starter',
+      seats: 5,
+      issuedDate: newStore.createdDate,
+      expiryDate: '2027-12-31',
+      daysLeft: 365,
+      status: 'Active',
+      autoRenew: true
+    };
+
+    setTenants([newStore, ...tenants]);
+    setLicenses([newLicense, ...licenses]);
+    setNewStoreName('');
+    setNewStoreLocation('');
+    setNewStoreManager('');
+    setIsAddStoreOpen(false);
+  };
+
+  // Action: Renew License
+  const handleRenewLicense = (licId) => {
+    setLicenses(prev => prev.map(lic => {
+      if (lic.id === licId) {
+        return { ...lic, status: 'Active', daysLeft: lic.daysLeft + 365, expiryDate: '2027-12-31' };
+      }
+      return lic;
+    }));
+  };
+
+  // Filtered store dataset based on sidebar dropdown or tab selection
+  const filteredTenants = selectedTenantFilter === 'all' 
+    ? tenants 
+    : tenants.filter(t => t.id === selectedTenantFilter);
+
+  // Derived KPIs
+  const totalStores = tenants.length;
+  const totalProducts = tenants.reduce((acc, t) => acc + t.totalProducts, 0);
+  const totalStaff = tenants.reduce((acc, t) => acc + t.totalStaff, 0);
+  const activeLicenses = licenses.filter(l => l.status === 'Active').length;
+  const expiringLicenses = licenses.filter(l => l.daysLeft <= 30).length;
+  const activeAlerts = MOCK_SYSTEM_ALERTS.length;
+
+  return (
+    <div className="flex h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden select-none">
+      
+      {/* ========================================================================= */}
+      {/* 1. LEFT SIDEBAR (Dark Slate Theme matching Mockup) */}
+      {/* ========================================================================= */}
+      <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between h-full shrink-0 z-10">
+        <div>
+          {/* Brand Header */}
+          <div className="p-4 border-b border-slate-800/90 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-md ring-1 ring-emerald-400/30">
+              <Shield className="w-5 h-5 text-emerald-100" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-slate-100 text-base tracking-tight leading-none">NexusRetail</h1>
+              <span className="text-[11px] font-mono font-semibold text-emerald-400">SUPER ADMIN v2.4</span>
+            </div>
+          </div>
+
+          {/* TENANT SWITCHER DROPDOWN */}
+          <div className="p-3.5 border-b border-slate-800/80">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+              VIEWING STORE TENANT
+            </label>
+            <div className="relative">
+              <select
+                value={selectedTenantFilter}
+                onChange={(e) => setSelectedTenantFilter(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-200 appearance-none focus:outline-none focus:border-emerald-500 transition-all cursor-pointer pr-8"
+              >
+                <option value="all">Platform Overview (All Stores)</option>
+                {tenants.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* SIDEBAR NAVIGATION ITEMS */}
+          <nav className="p-3 space-y-1">
+            <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              Admin Controls
+            </div>
+
+            <button
+              onClick={() => { setSidebarNav('command-center'); setTopTab('overview'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                sidebarNav === 'command-center' && topTab === 'overview'
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+              <span>Command Center</span>
+            </button>
+
+            <button
+              onClick={() => { setSidebarNav('system-admin'); setTopTab('stores'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                topTab === 'stores'
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Building2 className="w-4 h-4 text-slate-400" />
+              <span>System Administration</span>
+            </button>
+
+            <button
+              onClick={() => { setSidebarNav('license-desk'); setTopTab('licenses'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                topTab === 'licenses'
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <KeyRound className="w-4 h-4 text-slate-400" />
+              <span>License Desk</span>
+              {expiringLicenses > 0 && (
+                <span className="ml-auto text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  {expiringLicenses}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => { setSidebarNav('system-alerts'); setTopTab('health'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                topTab === 'health'
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <AlertTriangle className="w-4 h-4 text-slate-400" />
+              <span>System Alerts</span>
+            </button>
+
+            <button
+              onClick={() => { setSidebarNav('reporting'); setTopTab('overview'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                sidebarNav === 'reporting'
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-slate-400" />
+              <span>Reporting & KPIs</span>
+            </button>
+
+            <button
+              onClick={() => { setSidebarNav('audits'); setTopTab('config'); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                topTab === 'config'
+                  ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 text-slate-400" />
+              <span>Platform Audits</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* SIDEBAR FOOTER PROFILE BADGE */}
+        <div className="p-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 truncate">
+            <div className="w-8 h-8 rounded-lg bg-emerald-600/30 text-emerald-400 font-extrabold text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">
+              SA
+            </div>
+            <div className="truncate">
+              <span className="text-xs font-bold text-slate-200 block truncate leading-tight">
+                {currentUser?.name || 'superadmin'}
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400 font-extrabold block">
+                SUPER ADMIN
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <button 
+              onClick={() => setTopTab('health')}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors relative"
+              title="System Alerts"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            </button>
+            
+            <button 
+              onClick={() => setTopTab('licenses')}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
+              title="Licenses Desk"
+            >
+              <Key className="w-3.5 h-3.5" />
+            </button>
+
+            <button 
+              onClick={() => setParentActiveTab && setParentActiveTab('dashboard')}
+              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors border border-red-500/20"
+              title="Exit Super Admin View"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* 2. MAIN VIEW AREA (Dark Slate Canvas with Modern Visualizations) */}
+      {/* ========================================================================= */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-slate-950">
+        
+        {/* TOP HEADER COMMAND CENTER TITLE BAR */}
+        <header className="px-6 py-5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
+          <div>
+            <h1 className="text-2xl font-serif font-extrabold text-slate-100 tracking-tight flex items-center gap-2">
+              Super Admin Command Center
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Full platform control — tenants, licenses, inventory & system health.
+            </p>
+          </div>
+
+          <button
+            onClick={handleRefresh}
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </header>
+
+        <main className="p-6 space-y-6 flex-1">
+          
+          {/* ========================================================================= */}
+          {/* 3. TOP NAVIGATION PILL TABS */}
+          {/* ========================================================================= */}
+          <div className="p-1 bg-slate-900/90 border border-slate-800/90 rounded-2xl inline-flex items-center gap-1 shadow-sm overflow-x-auto max-w-full">
+            <button
+              onClick={() => setTopTab('overview')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                topTab === 'overview'
+                  ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-md'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+              <span>Platform Overview</span>
+            </button>
+
+            <button
+              onClick={() => setTopTab('stores')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                topTab === 'stores'
+                  ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-md'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Store Management</span>
+            </button>
+
+            <button
+              onClick={() => setTopTab('licenses')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                topTab === 'licenses'
+                  ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-md'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>Licenses & Billing</span>
+            </button>
+
+            <button
+              onClick={() => setTopTab('config')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                topTab === 'config'
+                  ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-md'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Global Config</span>
+            </button>
+
+            <button
+              onClick={() => setTopTab('health')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                topTab === 'health'
+                  ? 'bg-slate-800 text-emerald-400 border border-slate-700/80 shadow-md'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+              }`}
+            >
+              <Activity className="w-4 h-4" />
+              <span>System Health</span>
+            </button>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* TAB CONTENT: PLATFORM OVERVIEW (Matching Design Layout) */}
+          {/* ========================================================================= */}
+          {topTab === 'overview' && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              {/* KPI CARDS GRID (6 SUMMARY CARDS MATCHING MOCKUP) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                
+                {/* 1. STORES */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">STORES</span>
+                    <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-extrabold text-slate-100 font-mono">{totalStores}</span>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Active</span>
+                  </div>
+                </div>
+
+                {/* 2. TOTAL PRODUCTS */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TOTAL PRODUCTS</span>
+                    <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                      <Store className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-extrabold text-slate-100 font-mono">{totalProducts}</span>
+                    <span className="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded">Items</span>
+                  </div>
+                </div>
+
+                {/* 3. STAFF MEMBERS */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">STAFF MEMBERS</span>
+                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <Users className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-extrabold text-slate-100 font-mono">{totalStaff}</span>
+                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">Users</span>
+                  </div>
+                </div>
+
+                {/* 4. ACTIVE LICENSES */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">ACTIVE LICENSES</span>
+                    <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      <KeyRound className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-extrabold text-slate-100 font-mono">{activeLicenses}</span>
+                    <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded">Valid</span>
+                  </div>
+                </div>
+
+                {/* 5. EXPIRING <= 30D */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">EXPIRING ≤30D</span>
+                    <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-extrabold text-slate-100 font-mono">{expiringLicenses}</span>
+                    <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Action</span>
+                  </div>
+                </div>
+
+                {/* 6. ACTIVE ALERTS */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">ACTIVE ALERTS</span>
+                    <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-extrabold text-slate-100 font-mono">{activeAlerts}</span>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">System OK</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* VISUALIZATION CHARTS GRID */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* BAR CHART: Products / Revenue per Store */}
+                <div className="lg:col-span-2 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-200">Products per Store</h3>
+                      <p className="text-[11px] text-slate-400">Active product catalog distribution across store locations</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                      Live Store Sync
+                    </span>
+                  </div>
+
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={MOCK_STORE_BAR_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="storeBarGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#2d7a64" stopOpacity={1} />
+                            <stop offset="100%" stopColor="#1e5243" stopOpacity={0.8} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#0f172a', 
+                            borderColor: '#334155', 
+                            borderRadius: '12px',
+                            color: '#f8fafc',
+                            fontSize: '12px'
+                          }} 
+                        />
+                        <Bar dataKey="students" fill="url(#storeBarGradient)" radius={[8, 8, 0, 0]} barSize={42} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* DONUT CHART: License Plan Breakdown */}
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-200">License Plan Breakdown</h3>
+                    <p className="text-[11px] text-slate-400">Distribution of active tenant licensing tiers</p>
+                  </div>
+
+                  <div className="h-56 w-full flex items-center justify-center my-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={MOCK_LICENSE_DONUT_DATA}
+                          innerRadius={55}
+                          outerRadius={80}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {MOCK_LICENSE_DONUT_DATA.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#0f172a', 
+                            borderColor: '#334155', 
+                            borderRadius: '12px',
+                            color: '#f8fafc',
+                            fontSize: '12px'
+                          }} 
+                        />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          iconType="circle"
+                          formatter={(value) => <span className="text-xs text-slate-300 font-semibold">{value}</span>}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Total Subscriptions</span>
+                    <span className="font-bold text-slate-200 font-mono">{licenses.length} Plans</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* PLATFORM RECENT ALERTS FEED */}
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-emerald-400" />
+                    <span>Real-Time Platform Alerts & Audits</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-mono">3 Logs Captured</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {MOCK_SYSTEM_ALERTS.map(alert => (
+                    <div key={alert.id} className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          alert.level === 'warning' ? 'bg-amber-500/10 text-amber-400' :
+                          alert.level === 'success' ? 'bg-emerald-500/10 text-emerald-400' :
+                          'bg-indigo-500/10 text-indigo-400'
+                        }`}>
+                          <Activity className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-200">{alert.title}</h4>
+                          <p className="text-[11px] text-slate-400">{alert.message}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] font-mono text-slate-400 block">{alert.timestamp}</span>
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
+                          {alert.source}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB CONTENT: STORE MANAGEMENT */}
+          {/* ========================================================================= */}
+          {topTab === 'stores' && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-100">Tenant Store Management</h3>
+                  <p className="text-xs text-slate-400">View and provision store locations across the retail platform</p>
+                </div>
+
+                <button
+                  onClick={() => setIsAddStoreOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Provision New Store</span>
+                </button>
+              </div>
+
+              {/* STORE MANAGEMENT TABLE */}
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-800/80 text-slate-400 uppercase text-[10px] font-extrabold tracking-wider border-b border-slate-700">
+                    <tr>
+                      <th className="p-3.5">Store / Tenant Name</th>
+                      <th className="p-3.5">Code</th>
+                      <th className="p-3.5">Location</th>
+                      <th className="p-3.5">Manager</th>
+                      <th className="p-3.5">Plan Tier</th>
+                      <th className="p-3.5">Products</th>
+                      <th className="p-3.5">Staff</th>
+                      <th className="p-3.5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {filteredTenants.map(t => (
+                      <tr key={t.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="p-3.5 font-bold text-slate-100 flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-mono font-bold">
+                            <Building2 className="w-3.5 h-3.5" />
+                          </div>
+                          <span>{t.name}</span>
+                        </td>
+                        <td className="p-3.5 font-mono text-slate-400">{t.code}</td>
+                        <td className="p-3.5 text-slate-300">{t.location}</td>
+                        <td className="p-3.5 font-medium text-slate-200">{t.manager}</td>
+                        <td className="p-3.5">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            {t.plan}
+                          </span>
+                        </td>
+                        <td className="p-3.5 font-mono text-slate-300">{t.totalProducts}</td>
+                        <td className="p-3.5 font-mono text-slate-300">{t.totalStaff}</td>
+                        <td className="p-3.5">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                            t.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {t.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB CONTENT: LICENSES & BILLING */}
+          {/* ========================================================================= */}
+          {topTab === 'licenses' && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              <div>
+                <h3 className="text-base font-bold text-slate-100">SaaS License Desk</h3>
+                <p className="text-xs text-slate-400">Manage SaaS subscriptions, key expirations, and seat quotas</p>
+              </div>
+
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-800/80 text-slate-400 uppercase text-[10px] font-extrabold tracking-wider border-b border-slate-700">
+                    <tr>
+                      <th className="p-3.5">License Key</th>
+                      <th className="p-3.5">Tenant Name</th>
+                      <th className="p-3.5">Plan Tier</th>
+                      <th className="p-3.5">Seats</th>
+                      <th className="p-3.5">Expiry Date</th>
+                      <th className="p-3.5">Days Remaining</th>
+                      <th className="p-3.5">Status</th>
+                      <th className="p-3.5 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {licenses.map(lic => (
+                      <tr key={lic.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="p-3.5 font-mono text-emerald-400 font-bold">{lic.id}</td>
+                        <td className="p-3.5 font-semibold text-slate-200">{lic.tenantName}</td>
+                        <td className="p-3.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
+                            {lic.plan}
+                          </span>
+                        </td>
+                        <td className="p-3.5 font-mono">{lic.seats} Seats</td>
+                        <td className="p-3.5 font-mono text-slate-400">{lic.expiryDate}</td>
+                        <td className="p-3.5 font-mono font-bold">
+                          <span className={lic.daysLeft <= 30 ? 'text-amber-400' : 'text-emerald-400'}>
+                            {lic.daysLeft} days
+                          </span>
+                        </td>
+                        <td className="p-3.5">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            lic.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {lic.status}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-right">
+                          <button
+                            onClick={() => handleRenewLicense(lic.id)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[11px] font-bold transition-all border border-emerald-500/30"
+                          >
+                            Renew License
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB CONTENT: GLOBAL CONFIG */}
+          {/* ========================================================================= */}
+          {topTab === 'config' && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              <div>
+                <h3 className="text-base font-bold text-slate-100">Global Platform Configuration</h3>
+                <p className="text-xs text-slate-400">System-wide parameters, tax defaults, and infrastructure flags</p>
+              </div>
+
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-sm space-y-6 max-w-3xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Platform Brand Title</label>
+                    <input 
+                      type="text" 
+                      value={globalConfig.platformName} 
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, platformName: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Database Engine Target</label>
+                    <input 
+                      type="text" 
+                      disabled
+                      value={globalConfig.databaseEngine} 
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-400 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Default Currency Symbol</label>
+                    <input 
+                      type="text" 
+                      value={globalConfig.defaultCurrency} 
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, defaultCurrency: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Default Sales Tax Rate (%)</label>
+                    <input 
+                      type="number" 
+                      value={globalConfig.taxRateDefault} 
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, taxRateDefault: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-200">Offline POS Mode</h4>
+                      <p className="text-[11px] text-slate-400">Allow local caching and offline checkout sync</p>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={globalConfig.enableOfflinePOS}
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, enableOfflinePOS: e.target.checked })}
+                      className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-200">Maintenance Mode</h4>
+                      <p className="text-[11px] text-slate-400">Restrict access for non-super-admin store managers</p>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={globalConfig.maintenanceMode}
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, maintenanceMode: e.target.checked })}
+                      className="w-4 h-4 accent-emerald-500 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800 flex justify-end">
+                  <button 
+                    onClick={() => alert('Global configuration settings saved successfully!')}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB CONTENT: SYSTEM HEALTH */}
+          {/* ========================================================================= */}
+          {topTab === 'health' && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              <div>
+                <h3 className="text-base font-bold text-slate-100">Infrastructure & DB System Health</h3>
+                <p className="text-xs text-slate-400">Real-time status of Neon PostgreSQL, server memory & API latency</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400">DB LATENCY</span>
+                    <Database className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-100 font-mono">
+                    {MOCK_SYSTEM_HEALTH.dbLatencyMs} <span className="text-xs font-sans text-slate-400">ms</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                    Neon Serverless OK
+                  </span>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400">API UPTIME</span>
+                    <Server className="w-4 h-4 text-teal-400" />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-100 font-mono">
+                    {MOCK_SYSTEM_HEALTH.apiUptimePercentage}%
+                  </div>
+                  <span className="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                    99.98% SLA
+                  </span>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400">ACTIVE WEBSOCKETS</span>
+                    <Activity className="w-4 h-4 text-indigo-400" />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-100 font-mono">
+                    {MOCK_SYSTEM_HEALTH.activeWebsockets}
+                  </div>
+                  <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                    Live POS Sockets
+                  </span>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-extrabold uppercase text-slate-400">MEMORY LOAD</span>
+                    <Zap className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div className="text-2xl font-extrabold text-slate-100 font-mono">
+                    {MOCK_SYSTEM_HEALTH.memoryUsageMb} <span className="text-xs font-sans text-slate-400">MB</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded mt-2 inline-block">
+                    30.5% Allocated
+                  </span>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+        </main>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MODAL: PROVISION NEW STORE */}
+      {/* ========================================================================= */}
+      {isAddStoreOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-emerald-400" />
+                <span>Provision New Store Tenant</span>
+              </h3>
+              <button 
+                onClick={() => setIsAddStoreOpen(false)}
+                className="text-slate-400 hover:text-slate-200 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStore} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Store / Tenant Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Masvingo Retail Branch"
+                  value={newStoreName}
+                  onChange={(e) => setNewStoreName(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Location / Address</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Masvingo Central Mall"
+                  value={newStoreLocation}
+                  onChange={(e) => setNewStoreLocation(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Store Manager Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Tendai Moyo"
+                  value={newStoreManager}
+                  onChange={(e) => setNewStoreManager(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddStoreOpen(false)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/20"
+                >
+                  Create & Issue License
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

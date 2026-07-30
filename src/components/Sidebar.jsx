@@ -13,8 +13,10 @@ import {
   Store,
   PanelLeftClose,
   PanelLeftOpen,
-  X
+  X,
+  Shield
 } from 'lucide-react';
+import { ROLES } from '../config/rbac';
 
 export default function Sidebar({ 
   activeTab, 
@@ -27,7 +29,7 @@ export default function Sidebar({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const navItems = [
+  const baseNavItems = [
     {
       id: 'dashboard',
       label: 'Dashboard',
@@ -67,6 +69,19 @@ export default function Sidebar({
       desc: 'Checkout & Receipt'
     }
   ];
+
+  const superAdminItem = {
+    id: 'superadmin',
+    label: 'Super Admin',
+    icon: Shield,
+    badge: 'HQ',
+    badgeColor: 'bg-emerald-500',
+    desc: 'Multi-Tenant Control'
+  };
+
+  const navItems = (currentUser?.role === ROLES.SUPER_ADMIN || activeTab === 'superadmin')
+    ? [superAdminItem, ...baseNavItems]
+    : [...baseNavItems, superAdminItem];
 
   const handleTabClick = (tabId) => {
     if (document.startViewTransition) {

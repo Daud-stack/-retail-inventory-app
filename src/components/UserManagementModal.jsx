@@ -216,7 +216,8 @@ export default function UserManagementModal({
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
                   >
-                    <option value={ROLES.ADMIN}>Admin (Full System Access)</option>
+                    <option value={ROLES.SUPER_ADMIN}>Super Admin (Multi-Tenant Command Center)</option>
+                    <option value={ROLES.ADMIN}>Admin (Full Store Access)</option>
                     <option value={ROLES.MANAGER}>Store Manager</option>
                     <option value={ROLES.CASHIER}>Cashier (POS Checkout Only)</option>
                     <option value={ROLES.CLERK}>Stock Clerk (Inventory Intake Only)</option>

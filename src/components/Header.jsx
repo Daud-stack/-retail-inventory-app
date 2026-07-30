@@ -39,7 +39,8 @@ export default function Header({
     'add-product': { title: 'Stock Entry', subtitle: 'Add Item or Scan Barcode SKU' },
     forecasting: { title: 'Stock Demand Forecasting', subtitle: 'Time Series Predictions & Stockout Timelines' },
     datascience: { title: 'Retail Intelligence & Data Science', subtitle: 'Market Basket Analysis (Apriori), FSN Velocity & ABC Pareto Rules' },
-    pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' }
+    pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' },
+    superadmin: { title: 'Super Admin Command Center', subtitle: 'Full Platform Control — Stores, Licenses & System Health' }
   };
 
   const currentInfo = tabTitles[activeTab] || tabTitles.dashboard;
@@ -98,6 +99,7 @@ export default function Header({
           <div className="hidden sm:block text-left">
             <span className="text-[11px] font-bold text-slate-200 block leading-tight">{currentUser?.name}</span>
             <span className={`text-[9px] font-extrabold uppercase px-1 rounded ${
+              currentUser?.role === ROLES.SUPER_ADMIN ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
               currentUser?.role === ROLES.ADMIN ? 'bg-purple-500/20 text-purple-300' :
               currentUser?.role === ROLES.MANAGER ? 'bg-indigo-500/20 text-indigo-300' :
               currentUser?.role === ROLES.CASHIER ? 'bg-emerald-500/20 text-emerald-300' :

@@ -13,6 +13,7 @@ import QuickCartDrawer from './components/QuickCartDrawer';
 import UserManagementModal from './components/UserManagementModal';
 import ForecastingView from './components/ForecastingView';
 import DataScienceAnalyticsView from './components/DataScienceAnalyticsView';
+import SuperAdminCommandCenter from './components/SuperAdminCommandCenter';
 import { executeCheckoutInvoice } from './services/inventoryEngine';
 
 export default function App() {
@@ -22,10 +23,10 @@ export default function App() {
   
   // RBAC User Accounts State
   const [users, setUsers] = useState(INITIAL_USERS);
-  const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); // Sarah Jenkins (Admin)
+  const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); // Alex Thorne (Super Admin)
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('superadmin');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState([]);
@@ -95,6 +96,9 @@ export default function App() {
 
   const handleSwitchUser = (selectedUser) => {
     setCurrentUser(selectedUser);
+    if (selectedUser.role === ROLES.SUPER_ADMIN) {
+      setActiveTab('superadmin');
+    }
   };
 
   // Barcode Scanner completion handler
@@ -145,6 +149,27 @@ export default function App() {
       alert(`Checkout Error: ${err.message}`);
     }
   };
+
+  // Dedicated Super Admin View Mode
+  if (activeTab === 'superadmin') {
+    return (
+      <div className="h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
+        <SuperAdminCommandCenter 
+          currentUser={currentUser} 
+          onSwitchUser={handleSwitchUser} 
+          setActiveTab={setActiveTab} 
+        />
+        <UserManagementModal 
+          isOpen={isUserManagementOpen}
+          onClose={() => setIsUserManagementOpen(false)}
+          users={users}
+          currentUser={currentUser}
+          onSwitchUser={handleSwitchUser}
+          onCreateUser={handleCreateUser}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
