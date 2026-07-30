@@ -200,7 +200,7 @@ export default function UserManagementView({
                           : 'bg-slate-950 text-slate-400 border border-slate-800 text-[10px] cursor-not-allowed'
                     }`}
                   >
-                    {isCurrent ? 'Active Session' : canSwitchToThisUser ? 'Switch Role' : 'Protected'}
+                    {isCurrent ? 'Active Session' : 'PIN Required'}
                   </button>
                 </div>
               </div>

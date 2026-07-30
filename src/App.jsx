@@ -33,23 +33,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleSwitchUser = (selectedUser) => {
-    // Strict RBAC Guard: Non-SuperAdmins cannot jump into Super Admin account without authenticating via PIN 9999
-    if (selectedUser?.role === ROLES.SUPER_ADMIN && currentUser?.role !== ROLES.SUPER_ADMIN) {
-      alert('Security Protection Active: Only authenticated Super Admins can access Super Admin mode. Please log out and authenticate using PIN 9999.');
-      return;
-    }
-
-    setCurrentUser(selectedUser);
+    // Require strict PIN authentication for switching account sessions
+    setIsLoggedIn(false);
     setIsUserManagementOpen(false);
-    if (selectedUser.role === ROLES.SUPER_ADMIN) {
-      setActiveTab('superadmin');
-    } else if (selectedUser.role === ROLES.CASHIER) {
-      setActiveTab('pos');
-    } else if (selectedUser.role === ROLES.CLERK) {
-      setActiveTab('products');
-    } else {
-      setActiveTab('dashboard');
-    }
   };
 
   const handleLogout = () => {

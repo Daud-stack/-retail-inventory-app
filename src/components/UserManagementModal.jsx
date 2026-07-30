@@ -190,7 +190,7 @@ export default function UserManagementModal({
                               : 'bg-slate-950 text-slate-400 border border-slate-800 text-[10px]'
                         }`}
                       >
-                        {isCurrent ? 'Active' : canSwitchToThisUser ? 'Switch' : 'Protected'}
+                        {isCurrent ? 'Active' : 'PIN Required'}
                       </button>
                     </div>
                   );
