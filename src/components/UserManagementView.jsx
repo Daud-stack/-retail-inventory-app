@@ -32,10 +32,17 @@ export default function UserManagementView({
   const maxUsersAllowed = 25;
   const isUserQuotaReached = users.length >= maxUsersAllowed;
 
+  const canCreateUsers = currentUser?.role === ROLES.ADMIN || currentUser?.role === ROLES.SUPER_ADMIN;
+
   const handleCreateSubmit = (e) => {
     e.preventDefault();
+    if (!canCreateUsers) {
+      alert('Permission Denied: Only Admin accounts are authorized to provision user profiles.');
+      return;
+    }
+
     if (!formData.name || !formData.email || !formData.pin) {
-      alert('Please fill out Account Name, Email, and 4-digit PIN!');
+      alert('Please fill out Name, Email, and 4-digit Security PIN!');
       return;
     }
 
@@ -102,17 +109,19 @@ export default function UserManagementView({
           <span>Active Role Accounts ({users.length})</span>
         </button>
 
-        <button
-          onClick={() => setActiveSubTab('create')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-            activeSubTab === 'create'
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Provision New Role Account</span>
-        </button>
+        {canCreateUsers && (
+          <button
+            onClick={() => setActiveSubTab('create')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeSubTab === 'create'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800'
+            }`}
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Provision New Role Account</span>
+          </button>
+        )}
 
         <button
           onClick={() => setActiveSubTab('permissions')}

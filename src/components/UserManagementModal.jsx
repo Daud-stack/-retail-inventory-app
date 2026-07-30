@@ -35,8 +35,15 @@ export default function UserManagementModal({
   const maxUsersAllowed = 25; // System maximum user quota per store / platform
   const isUserQuotaReached = users.length >= maxUsersAllowed;
 
+  const canCreateUsers = currentUser?.role === ROLES.ADMIN || currentUser?.role === ROLES.SUPER_ADMIN;
+
   const handleCreateSubmit = (e) => {
     e.preventDefault();
+    if (!canCreateUsers) {
+      alert('Permission Denied: Only Admin accounts are authorized to provision new user profiles.');
+      return;
+    }
+
     if (!formData.name || !formData.email || !formData.pin) {
       alert('Please fill out Name, Email, and 4-digit PIN!');
       return;
@@ -72,17 +79,17 @@ export default function UserManagementModal({
         <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5" />
+              <Users className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-100 text-base">RBAC User & Role Management</h3>
-              <p className="text-xs text-slate-400">Manage store access privileges & security permissions</p>
+              <h3 className="font-extrabold text-slate-100 text-base">User & Role Management</h3>
+              <p className="text-xs text-slate-400">Switch user roles, create accounts & inspect RBAC matrix</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,17 +109,19 @@ export default function UserManagementModal({
             <span>Switch User Profile</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
-              activeTab === 'create'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Create New User</span>
-          </button>
+          {canCreateUsers && (
+            <button
+              onClick={() => setActiveTab('create')}
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
+                activeTab === 'create'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Create New User</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('permissions')}
