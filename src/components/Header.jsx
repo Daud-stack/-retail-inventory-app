@@ -41,6 +41,7 @@ export default function Header({
     'add-product': { title: 'Stock Entry', subtitle: 'Add Item or Scan Barcode SKU' },
     forecasting: { title: 'Stock Demand Forecasting', subtitle: 'Time Series Predictions & Stockout Timelines' },
     datascience: { title: 'Retail Intelligence & Data Science', subtitle: 'Market Basket Analysis (Apriori), FSN Velocity & ABC Pareto Rules' },
+    users: { title: 'User & Role Management', subtitle: 'Store Accounts, Credentials & RBAC Matrix' },
     pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' },
     superadmin: { title: 'Super Admin Command Center', subtitle: 'Full Platform Control — Stores, Licenses & System Health' }
   };

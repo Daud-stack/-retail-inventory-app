@@ -6,6 +6,7 @@ import {
   ShoppingCart, 
   TrendingUp,
   BrainCircuit,
+  Users,
   Layers, 
   Zap,
   AlertTriangle,
@@ -65,6 +66,13 @@ export default function Sidebar({
       icon: BrainCircuit,
       desc: 'Market Basket & FSN',
       permission: PERMISSIONS.VIEW_FINANCIALS
+    },
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: Users,
+      desc: 'Roles & Credentials',
+      permission: PERMISSIONS.MANAGE_USERS
     },
     {
       id: 'pos',

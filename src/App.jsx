@@ -12,6 +12,7 @@ import POSCart from './components/POSCart';
 import ReceiptModal from './components/ReceiptModal';
 import QuickCartDrawer from './components/QuickCartDrawer';
 import UserManagementModal from './components/UserManagementModal';
+import UserManagementView from './components/UserManagementView';
 import ForecastingView from './components/ForecastingView';
 import DataScienceAnalyticsView from './components/DataScienceAnalyticsView';
 import SuperAdminCommandCenter from './components/SuperAdminCommandCenter';
@@ -339,6 +340,24 @@ export default function App() {
               <AccessRestrictedBanner 
                 role={currentUser?.role} 
                 tabName="Retail Intelligence & Data Science" 
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onLogout={handleLogout}
+              />
+            )
+          )}
+
+          {effectiveTab === 'users' && (
+            hasPermission(currentUser?.role, PERMISSIONS.MANAGE_USERS) ? (
+              <UserManagementView 
+                users={users}
+                currentUser={currentUser}
+                onSwitchUser={handleSwitchUser}
+                onCreateUser={handleCreateUser}
+              />
+            ) : (
+              <AccessRestrictedBanner 
+                role={currentUser?.role} 
+                tabName="User & Role Management" 
                 onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
                 onLogout={handleLogout}
               />
