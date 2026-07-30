@@ -40,7 +40,7 @@ export default function LoginModal({
       setErrorMsg('');
       onLoginSuccess(selectedUser);
     } else {
-      setErrorMsg(`Invalid PIN for ${selectedUser.name}. Please check your 4-digit code.`);
+      setErrorMsg(`Invalid Security PIN for ${selectedUser.role} Account.`);
     }
   };
 
@@ -61,44 +61,40 @@ export default function LoginModal({
             NexusRetail Authentication Guard
           </h2>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Role-Based Access Control (RBAC) System • Enter PIN to log in
+            Select Role Account & enter 4-digit PIN to authenticate
           </p>
         </div>
 
         {/* Profile Choice Grid */}
         <div className="space-y-2">
           <label className="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-            Select User Account:
+            Select System Role Account:
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
             {users.map((usr) => {
               const isSelected = selectedUser?.id === usr.id;
+              const roleCode = usr.role === ROLES.SUPER_ADMIN ? 'SA' :
+                               usr.role === ROLES.ADMIN ? 'ADM' :
+                               usr.role === ROLES.MANAGER ? 'MGR' :
+                               usr.role === ROLES.CASHIER ? 'POS' : 'CLK';
               return (
                 <button
                   key={usr.id}
                   type="button"
                   onClick={() => handleSelectUser(usr)}
-                  className={`p-3 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between ${
                     isSelected
                       ? 'bg-indigo-600/20 border-indigo-500 shadow-md ring-1 ring-indigo-500/40 text-slate-100'
                       : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 text-slate-300 hover:bg-slate-800/40'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 font-extrabold text-indigo-400 text-xs flex items-center justify-center shrink-0">
-                      {usr.name.split(' ').map(n => n[0]).join('')}
+                  <div className="flex items-center gap-3 truncate">
+                    <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 font-extrabold text-indigo-400 text-xs flex items-center justify-center shrink-0">
+                      {roleCode}
                     </div>
                     <div className="truncate">
-                      <span className="text-xs font-bold block truncate leading-tight">{usr.name}</span>
-                      <span className={`text-[9px] font-extrabold uppercase px-1 rounded inline-block mt-0.5 ${
-                        usr.role === ROLES.SUPER_ADMIN ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                        usr.role === ROLES.ADMIN ? 'bg-purple-500/20 text-purple-300' :
-                        usr.role === ROLES.MANAGER ? 'bg-indigo-500/20 text-indigo-300' :
-                        usr.role === ROLES.CASHIER ? 'bg-emerald-500/20 text-emerald-300' :
-                        'bg-amber-500/20 text-amber-300'
-                      }`}>
-                        {usr.role}
-                      </span>
+                      <span className="text-xs font-bold block truncate leading-tight">{usr.role}</span>
+                      <span className="text-[10px] font-mono text-slate-400 block mt-0.5">PIN: {usr.pin}</span>
                     </div>
                   </div>
 
@@ -115,9 +111,9 @@ export default function LoginModal({
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Security PIN for {selectedUser?.name}</span>
+                <span>Security PIN for {selectedUser?.role} Account</span>
               </label>
-              <span className="text-[10px] font-mono text-slate-400">PIN: {selectedUser?.pin}</span>
+              <span className="text-[10px] font-mono text-emerald-400 font-bold">Default PIN: {selectedUser?.pin}</span>
             </div>
 
             <input

@@ -90,8 +90,8 @@ export const ROLE_PERMISSIONS = {
 export const INITIAL_USERS = [
   {
     id: 'usr-0',
-    name: 'Alex Thorne',
-    email: 'alex.superadmin@nexusretail.com',
+    name: 'Super Admin Account',
+    email: 'superadmin@nexusretail.com',
     role: ROLES.SUPER_ADMIN,
     pin: '9999',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
@@ -99,8 +99,8 @@ export const INITIAL_USERS = [
   },
   {
     id: 'usr-1',
-    name: 'Sarah Jenkins',
-    email: 'sarah.admin@nexusretail.com',
+    name: 'Admin Account',
+    email: 'admin@nexusretail.com',
     role: ROLES.ADMIN,
     pin: '1234',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
@@ -108,8 +108,8 @@ export const INITIAL_USERS = [
   },
   {
     id: 'usr-2',
-    name: 'Marcus Vance',
-    email: 'marcus.mgr@nexusretail.com',
+    name: 'Store Manager Account',
+    email: 'manager@nexusretail.com',
     role: ROLES.MANAGER,
     pin: '2222',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
@@ -117,8 +117,8 @@ export const INITIAL_USERS = [
   },
   {
     id: 'usr-3',
-    name: 'Elena Rostova',
-    email: 'elena.pos@nexusretail.com',
+    name: 'Cashier Account',
+    email: 'cashier@nexusretail.com',
     role: ROLES.CASHIER,
     pin: '3333',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
@@ -126,8 +126,8 @@ export const INITIAL_USERS = [
   },
   {
     id: 'usr-4',
-    name: 'David Miller',
-    email: 'david.clerk@nexusretail.com',
+    name: 'Stock Clerk Account',
+    email: 'clerk@nexusretail.com',
     role: ROLES.CLERK,
     pin: '4444',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',

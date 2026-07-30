@@ -135,6 +135,10 @@ export default function UserManagementModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {users.map((usr) => {
                   const isCurrent = currentUser?.id === usr.id;
+                  const roleCode = usr.role === ROLES.SUPER_ADMIN ? 'SA' :
+                                   usr.role === ROLES.ADMIN ? 'ADM' :
+                                   usr.role === ROLES.MANAGER ? 'MGR' :
+                                   usr.role === ROLES.CASHIER ? 'POS' : 'CLK';
                   return (
                     <div
                       key={usr.id}
@@ -146,23 +150,16 @@ export default function UserManagementModal({
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 font-extrabold text-indigo-400 flex items-center justify-center text-sm">
-                          {usr.name.split(' ').map(n => n[0]).join('')}
+                        <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 font-extrabold text-indigo-400 flex items-center justify-center text-xs">
+                          {roleCode}
                         </div>
 
                         <div>
                           <h4 className="font-bold text-slate-100 text-xs flex items-center gap-1.5">
-                            {usr.name}
+                            {usr.role} Account
                             {isCurrent && <UserCheck className="w-3.5 h-3.5 text-emerald-400" />}
                           </h4>
-                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md inline-block mt-0.5 ${
-                            usr.role === ROLES.ADMIN ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                            usr.role === ROLES.MANAGER ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
-                            usr.role === ROLES.CASHIER ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                            'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          }`}>
-                            {usr.role}
-                          </span>
+                          <span className="text-[10px] font-mono text-slate-400 block mt-0.5">PIN: {usr.pin}</span>
                         </div>
                       </div>
 
@@ -316,7 +313,7 @@ export default function UserManagementModal({
         <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-indigo-400" />
-            <span>Active: <strong className="text-slate-200">{currentUser?.name}</strong> ({currentUser?.role})</span>
+            <span>Active: <strong className="text-slate-200">{currentUser?.role} Account</strong></span>
           </div>
 
           <button

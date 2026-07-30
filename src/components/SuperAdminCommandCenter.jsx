@@ -416,10 +416,10 @@ export default function SuperAdminCommandCenter({
             </div>
             <div className="truncate">
               <span className="text-xs font-bold text-slate-200 block truncate leading-tight">
-                {currentUser?.name || 'superadmin'}
+                Super Admin Account
               </span>
               <span className="text-[10px] font-mono text-emerald-400 font-extrabold block">
-                SUPER ADMIN
+                ACTIVE SESSION
               </span>
             </div>
           </div>

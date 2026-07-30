@@ -93,22 +93,17 @@ export default function Header({
         <button
           onClick={onOpenUserManagement}
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all text-xs font-semibold group"
-          title="Manage Roles & Switch User Profile"
+          title="Manage Roles & Switch Role Profile"
         >
           <div className="w-6 h-6 rounded-full bg-indigo-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0">
-            {currentUser?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+            {currentUser?.role === ROLES.SUPER_ADMIN ? 'SA' :
+             currentUser?.role === ROLES.ADMIN ? 'ADM' :
+             currentUser?.role === ROLES.MANAGER ? 'MGR' :
+             currentUser?.role === ROLES.CASHIER ? 'POS' : 'CLK'}
           </div>
           <div className="hidden sm:block text-left">
-            <span className="text-[11px] font-bold text-slate-200 block leading-tight">{currentUser?.name}</span>
-            <span className={`text-[9px] font-extrabold uppercase px-1 rounded ${
-              currentUser?.role === ROLES.SUPER_ADMIN ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-              currentUser?.role === ROLES.ADMIN ? 'bg-purple-500/20 text-purple-300' :
-              currentUser?.role === ROLES.MANAGER ? 'bg-indigo-500/20 text-indigo-300' :
-              currentUser?.role === ROLES.CASHIER ? 'bg-emerald-500/20 text-emerald-300' :
-              'bg-amber-500/20 text-amber-300'
-            }`}>
-              {currentUser?.role || 'User'}
-            </span>
+            <span className="text-[11px] font-bold text-slate-200 block leading-tight">{currentUser?.role || 'Role Account'}</span>
+            <span className="text-[9px] font-mono text-emerald-400 font-extrabold block">ACTIVE SESSION</span>
           </div>
           <ShieldCheck className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
         </button>
