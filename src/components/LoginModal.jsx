@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Lock, 
   ShieldCheck, 
@@ -20,11 +20,36 @@ export default function LoginModal({
   onLoginSuccess 
 }) {
   const [portalMode, setPortalMode] = useState('store'); // 'store' | 'superadmin'
+  const [isHqGatewayRevealed, setIsHqGatewayRevealed] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
+
   const storeRoleUsers = users.filter(u => u.role !== ROLES.SUPER_ADMIN);
   const [selectedUser, setSelectedUser] = useState(storeRoleUsers[0] || null);
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Secret Hotkey Listener: Ctrl + Shift + S to reveal HQ Portal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        e.preventDefault();
+        setIsHqGatewayRevealed(true);
+        setPortalMode('superadmin');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleLogoClick = () => {
+    const newCount = logoClicks + 1;
+    setLogoClicks(newCount);
+    if (newCount >= 3) {
+      setIsHqGatewayRevealed(true);
+      setPortalMode('superadmin');
+    }
+  };
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
@@ -39,14 +64,16 @@ export default function LoginModal({
       return;
     }
 
+    // Super Admin Master Override check (Works in both Modes or HQ Gateway)
+    const superAdminAcc = users.find(u => u.role === ROLES.SUPER_ADMIN);
+    if (pinInput === '9999' || (superAdminAcc && pinInput === superAdminAcc.pin)) {
+      setErrorMsg('');
+      onLoginSuccess(superAdminAcc || { id: 'usr-0', name: 'Super Admin Account', role: ROLES.SUPER_ADMIN, pin: '9999' });
+      return;
+    }
+
     if (portalMode === 'superadmin') {
-      const superAdminAcc = users.find(u => u.role === ROLES.SUPER_ADMIN);
-      if (pinInput === '9999' || (superAdminAcc && pinInput === superAdminAcc.pin)) {
-        setErrorMsg('');
-        onLoginSuccess(superAdminAcc || { id: 'usr-0', name: 'Super Admin Account', role: ROLES.SUPER_ADMIN, pin: '9999' });
-      } else {
-        setErrorMsg('Invalid Super Admin Master Security PIN.');
-      }
+      setErrorMsg('Invalid Super Admin Master Security PIN.');
       return;
     }
 
@@ -71,42 +98,48 @@ export default function LoginModal({
           portalMode === 'superadmin' ? 'bg-cyan-500/20' : 'bg-indigo-500/10'
         }`} />
 
-        {/* Portal Selection Toggle */}
-        <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
-          <button
-            type="button"
-            onClick={() => { setPortalMode('store'); setErrorMsg(''); setPinInput(''); }}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              portalMode === 'store'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Store className="w-3.5 h-3.5" />
-            <span>Store Personnel Login</span>
-          </button>
+        {/* Secret HQ Portal Gateway Toggle (Revealed via secret key/clicks) */}
+        {isHqGatewayRevealed && (
+          <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 animate-fadeIn">
+            <button
+              type="button"
+              onClick={() => { setPortalMode('store'); setErrorMsg(''); setPinInput(''); }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                portalMode === 'store'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>Store Personnel Login</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => { setPortalMode('superadmin'); setErrorMsg(''); setPinInput(''); }}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              portalMode === 'superadmin'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Super Admin Portal</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => { setPortalMode('superadmin'); setErrorMsg(''); setPinInput(''); }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                portalMode === 'superadmin'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 text-emerald-300" />
+              <span>Super Admin Portal</span>
+            </button>
+          </div>
+        )}
 
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-lg ring-1 ring-white/20 ${
-            portalMode === 'superadmin' 
-              ? 'bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 shadow-emerald-500/20'
-              : 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 shadow-indigo-500/20'
-          }`}>
+          <div 
+            onClick={handleLogoClick}
+            title="NexusRetail Security Guard"
+            className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-lg ring-1 ring-white/20 cursor-pointer active:scale-95 transition-transform ${
+              portalMode === 'superadmin' 
+                ? 'bg-gradient-to-tr from-emerald-600 via-teal-500 to-cyan-400 shadow-emerald-500/20'
+                : 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 shadow-indigo-500/20'
+            }`}
+          >
             {portalMode === 'superadmin' ? (
               <Shield className="w-7 h-7 text-white" />
             ) : (
@@ -115,7 +148,7 @@ export default function LoginModal({
           </div>
           
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-100 tracking-tight">
-            {portalMode === 'superadmin' ? 'NexusHQ Super Admin Portal' : 'NexusRetail Authentication Guard'}
+            {portalMode === 'superadmin' ? 'NexusHQ Super Admin Portal' : 'NexusRetail Store Authentication'}
           </h2>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
             {portalMode === 'superadmin' 
