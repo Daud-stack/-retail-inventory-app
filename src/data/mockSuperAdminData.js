@@ -15,6 +15,7 @@ export const MOCK_TENANTS = [
     plan: 'Full',
     totalProducts: 4,
     totalStaff: 12,
+    maxUsers: 15,
     monthlyRevenue: 14850.00,
     createdDate: '2025-01-15'
   },
@@ -29,6 +30,7 @@ export const MOCK_TENANTS = [
     plan: 'Enterprise',
     totalProducts: 850,
     totalStaff: 8,
+    maxUsers: 50,
     monthlyRevenue: 22400.00,
     createdDate: '2025-03-20'
   },
@@ -43,6 +45,7 @@ export const MOCK_TENANTS = [
     plan: 'Starter',
     totalProducts: 320,
     totalStaff: 5,
+    maxUsers: 5,
     monthlyRevenue: 9800.00,
     createdDate: '2025-06-10'
   },
@@ -57,6 +60,7 @@ export const MOCK_TENANTS = [
     plan: 'Trial',
     totalProducts: 140,
     totalStaff: 3,
+    maxUsers: 3,
     monthlyRevenue: 3400.00,
     createdDate: '2026-06-01'
   }
@@ -69,6 +73,7 @@ export const MOCK_LICENSES = [
     tenantName: 'Harare Primary School & Retail Store',
     plan: 'Full',
     seats: 15,
+    maxUsers: 15,
     issuedDate: '2025-01-15',
     expiryDate: '2027-01-15',
     daysLeft: 534,
@@ -81,6 +86,7 @@ export const MOCK_LICENSES = [
     tenantName: 'Bulawayo Central Depot',
     plan: 'Enterprise',
     seats: 50,
+    maxUsers: 50,
     issuedDate: '2025-03-20',
     expiryDate: '2026-08-25',
     daysLeft: 26,
@@ -93,6 +99,7 @@ export const MOCK_LICENSES = [
     tenantName: 'Mutare Express Outlet',
     plan: 'Starter',
     seats: 5,
+    maxUsers: 5,
     issuedDate: '2025-06-10',
     expiryDate: '2026-12-10',
     daysLeft: 133,
@@ -105,6 +112,7 @@ export const MOCK_LICENSES = [
     tenantName: 'Gweru Hub Station',
     plan: 'Trial',
     seats: 3,
+    maxUsers: 3,
     issuedDate: '2026-06-01',
     expiryDate: '2026-08-01',
     daysLeft: 2,
@@ -146,6 +154,8 @@ export const MOCK_GLOBAL_CONFIG = {
   databaseEngine: 'Neon Serverless PostgreSQL (v16.2)',
   defaultCurrency: '$ (USD)',
   taxRateDefault: 15.0,
+  maxUsersAllowedPerTenant: 25,
+  maxGlobalUsersLimit: 200,
   enableOfflinePOS: true,
   enableAuditLogging: true,
   autoBackupInterval: 'Daily at 04:00 UTC',

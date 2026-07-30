@@ -32,10 +32,18 @@ export default function UserManagementModal({
 
   if (!isOpen) return null;
 
+  const maxUsersAllowed = 25; // System maximum user quota per store / platform
+  const isUserQuotaReached = users.length >= maxUsersAllowed;
+
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.pin) {
       alert('Please fill out Name, Email, and 4-digit PIN!');
+      return;
+    }
+
+    if (isUserQuotaReached) {
+      alert(`User limit reached (${users.length} / ${maxUsersAllowed} Users)! Please upgrade store license plan in Super Admin Command Center.`);
       return;
     }
 

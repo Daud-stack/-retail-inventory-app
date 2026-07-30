@@ -73,6 +73,7 @@ export default function SuperAdminCommandCenter({
   const [newStoreName, setNewStoreName] = useState('');
   const [newStoreLocation, setNewStoreLocation] = useState('');
   const [newStoreManager, setNewStoreManager] = useState('');
+  const [newStoreMaxUsers, setNewStoreMaxUsers] = useState(15);
 
   // Action: Handle manual sync/refresh
   const handleRefresh = () => {
@@ -97,6 +98,7 @@ export default function SuperAdminCommandCenter({
       plan: 'Starter',
       totalProducts: 0,
       totalStaff: 1,
+      maxUsers: parseInt(newStoreMaxUsers) || 15,
       monthlyRevenue: 0,
       createdDate: new Date().toISOString().split('T')[0]
     };
@@ -106,7 +108,8 @@ export default function SuperAdminCommandCenter({
       tenantId: newStore.id,
       tenantName: newStore.name,
       plan: 'Starter',
-      seats: 5,
+      seats: parseInt(newStoreMaxUsers) || 15,
+      maxUsers: parseInt(newStoreMaxUsers) || 15,
       issuedDate: newStore.createdDate,
       expiryDate: '2027-12-31',
       daysLeft: 365,
@@ -663,7 +666,7 @@ export default function SuperAdminCommandCenter({
                       <th className="p-3.5">Manager</th>
                       <th className="p-3.5">Plan Tier</th>
                       <th className="p-3.5">Products</th>
-                      <th className="p-3.5">Staff</th>
+                      <th className="p-3.5">Max User Quota</th>
                       <th className="p-3.5">Status</th>
                     </tr>
                   </thead>
@@ -685,7 +688,16 @@ export default function SuperAdminCommandCenter({
                           </span>
                         </td>
                         <td className="p-3.5 font-mono text-slate-300">{t.totalProducts}</td>
-                        <td className="p-3.5 font-mono text-slate-300">{t.totalStaff}</td>
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-slate-200 font-bold">{t.totalStaff} / {t.maxUsers} Users</span>
+                            <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded ${
+                              t.totalStaff >= t.maxUsers ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+                            }`}>
+                              {Math.round((t.totalStaff / t.maxUsers) * 100)}%
+                            </span>
+                          </div>
+                        </td>
                         <td className="p-3.5">
                           <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                             t.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
@@ -819,6 +831,26 @@ export default function SuperAdminCommandCenter({
                       type="number" 
                       value={globalConfig.taxRateDefault} 
                       onChange={(e) => setGlobalConfig({ ...globalConfig, taxRateDefault: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Default Max Users Per Tenant</label>
+                    <input 
+                      type="number" 
+                      value={globalConfig.maxUsersAllowedPerTenant} 
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, maxUsersAllowedPerTenant: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">Global System Users Limit</label>
+                    <input 
+                      type="number" 
+                      value={globalConfig.maxGlobalUsersLimit} 
+                      onChange={(e) => setGlobalConfig({ ...globalConfig, maxGlobalUsersLimit: parseInt(e.target.value) || 0 })}
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -988,6 +1020,19 @@ export default function SuperAdminCommandCenter({
                   placeholder="e.g., Tendai Moyo"
                   value={newStoreManager}
                   onChange={(e) => setNewStoreManager(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Maximum User Quota Limit</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  placeholder="15"
+                  value={newStoreMaxUsers}
+                  onChange={(e) => setNewStoreMaxUsers(e.target.value)}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                 />
               </div>
