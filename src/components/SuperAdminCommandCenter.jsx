@@ -51,6 +51,13 @@ import {
   MOCK_LICENSE_DONUT_DATA 
 } from '../data/mockSuperAdminData';
 
+import { 
+  generateLicenseKey, 
+  decodeLicenseKey, 
+  LICENSE_TIERS, 
+  TIER_CAPABILITIES 
+} from '../services/licensingEngine';
+
 export default function SuperAdminCommandCenter({ 
   currentUser, 
   onSwitchUser, 
@@ -75,12 +82,98 @@ export default function SuperAdminCommandCenter({
   const [newStoreManager, setNewStoreManager] = useState('');
   const [newStoreMaxUsers, setNewStoreMaxUsers] = useState(15);
 
+  // License Desk Form & Inspector States
+  const [inspectorKey, setInspectorKey] = useState('');
+  const [inspectedKeyData, setInspectedKeyData] = useState(null);
+  const [isGenLicenseOpen, setIsGenLicenseOpen] = useState(false);
+  const [genTenantId, setGenTenantId] = useState('');
+  const [genPlan, setGenPlan] = useState(LICENSE_TIERS.FULL);
+  const [genSeats, setGenSeats] = useState(15);
+  const [genDuration, setGenDuration] = useState(12);
+
   // Action: Handle manual sync/refresh
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
     }, 600);
+  };
+
+  // Action: Inspect & Decode Key
+  const handleInspectKey = (e) => {
+    e.preventDefault();
+    if (!inspectorKey.trim()) return;
+    const res = decodeLicenseKey(inspectorKey);
+    setInspectedKeyData(res);
+  };
+
+  // Action: Create Structured License Key
+  const handleGenerateLicenseSubmit = (e) => {
+    e.preventDefault();
+    const selectedTenant = tenants.find(t => t.id === genTenantId) || tenants[0];
+    const newLicObj = generateLicenseKey(genPlan, genDuration, genSeats);
+
+    const fullLic = {
+      id: `LIC-${Math.floor(10000 + Math.random() * 90000)}`,
+      key: newLicObj.key,
+      tenantId: selectedTenant.id,
+      tenantName: selectedTenant.name,
+      plan: newLicObj.plan,
+      seats: newLicObj.seats,
+      maxUsers: newLicObj.seats,
+      monthlyPrice: TIER_CAPABILITIES[newLicObj.plan]?.priceMonthly || 0,
+      issuedDate: newLicObj.issuedDate,
+      expiryDate: newLicObj.expiryDate,
+      daysLeft: newLicObj.daysLeft,
+      status: 'Active',
+      autoRenew: true,
+      features: newLicObj.features
+    };
+
+    setLicenses([fullLic, ...licenses]);
+    setIsGenLicenseOpen(false);
+    alert(`Successfully generated License Key: ${fullLic.key}`);
+  };
+
+  // Action: Toggle Suspend / Reactivate License
+  const handleToggleSuspendLicense = (licId) => {
+    setLicenses(prev => prev.map(lic => {
+      if (lic.id === licId) {
+        const nextStatus = lic.status === 'Suspended' ? 'Active' : 'Suspended';
+        return { ...lic, status: nextStatus };
+      }
+      return lic;
+    }));
+  };
+
+  // Action: Upgrade License Plan Tier
+  const handleUpgradeLicenseTier = (licId, newPlan) => {
+    setLicenses(prev => prev.map(lic => {
+      if (lic.id === licId) {
+        const caps = TIER_CAPABILITIES[newPlan] || {};
+        return { 
+          ...lic, 
+          plan: newPlan, 
+          seats: caps.maxUsers || lic.seats, 
+          maxUsers: caps.maxUsers || lic.maxUsers,
+          monthlyPrice: caps.priceMonthly || lic.monthlyPrice,
+          features: caps.features || lic.features 
+        };
+      }
+      return lic;
+    }));
+  };
+
+  // Action: Export License Certificate JSON
+  const handleExportLicenseJson = (lic) => {
+    const jsonStr = JSON.stringify(lic, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `License_${lic.id}_${lic.plan}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // Action: Add new store tenant
@@ -721,57 +814,200 @@ export default function SuperAdminCommandCenter({
           {topTab === 'licenses' && (
             <div className="space-y-6 animate-fadeIn">
               
-              <div>
-                <h3 className="text-base font-bold text-slate-100">SaaS License Desk</h3>
-                <p className="text-xs text-slate-400">Manage SaaS subscriptions, key expirations, and seat quotas</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                    <KeyRound className="w-5 h-5 text-emerald-400" />
+                    <span>SaaS License Desk & Key Generator</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Cryptographic key generation, feature gating, seat quotas, and subscription renewal</p>
+                </div>
+
+                <button
+                  onClick={() => setIsGenLicenseOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all self-start sm:self-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Generate New License Key</span>
+                </button>
               </div>
 
+              {/* SUMMARY STATS GRID */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TOTAL MONTHLY MRR</span>
+                  <div className="text-2xl font-extrabold text-emerald-400 font-mono mt-1">
+                    ${licenses.reduce((acc, l) => acc + (l.monthlyPrice || 0), 0)} <span className="text-xs text-slate-400 font-sans">/mo</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400 mt-1 block">Recurring License Revenue</span>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">ACTIVE SUBSCRIPTIONS</span>
+                  <div className="text-2xl font-extrabold text-slate-100 font-mono mt-1">
+                    {licenses.filter(l => l.status === 'Active').length} <span className="text-xs text-slate-400 font-sans">/ {licenses.length}</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-400 mt-1 block">Active Tenant Keys</span>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">TOTAL ALLOCATED SEATS</span>
+                  <div className="text-2xl font-extrabold text-indigo-400 font-mono mt-1">
+                    {licenses.reduce((acc, l) => acc + (l.seats || 0), 0)} <span className="text-xs text-slate-400 font-sans">Seats</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400 mt-1 block">Cross-Store User Quota</span>
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-sm">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">EXPIRING ≤30D</span>
+                  <div className="text-2xl font-extrabold text-amber-400 font-mono mt-1">
+                    {licenses.filter(l => l.daysLeft <= 30).length} <span className="text-xs text-slate-400 font-sans">Keys</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-amber-400 mt-1 block">Requires Renewal Action</span>
+                </div>
+              </div>
+
+              {/* LICENSE KEY INSPECTOR & DECODER TOOL */}
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                    <Search className="w-4 h-4 text-emerald-400" />
+                    <span>Live License Key Inspector & Validator</span>
+                  </h4>
+                  <span className="text-[10px] font-mono text-slate-400">Format: NEXUS-{'{TIER}'}-{'{YEAR}'}-{'{HASH}'}</span>
+                </div>
+
+                <form onSubmit={handleInspectKey} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Paste License Key (e.g., NEXUS-ENT-2026-X89A-94B2)..."
+                    value={inspectorKey}
+                    onChange={(e) => setInspectorKey(e.target.value)}
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-xs font-bold transition-all shrink-0"
+                  >
+                    Inspect & Decode Key
+                  </button>
+                </form>
+
+                {inspectedKeyData && (
+                  <div className={`p-4 rounded-xl border text-xs space-y-2 animate-fadeIn ${
+                    inspectedKeyData.valid 
+                      ? 'bg-slate-950/80 border-emerald-500/40 text-slate-200' 
+                      : 'bg-red-950/40 border-red-500/40 text-red-300'
+                  }`}>
+                    {inspectedKeyData.valid ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-mono text-emerald-400 font-bold text-sm">{inspectedKeyData.key}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            VALID KEY • {inspectedKeyData.plan}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2 border-t border-b border-slate-800 my-2 font-mono">
+                          <div><span className="text-slate-400 block text-[10px]">TIER</span> <strong className="text-slate-100">{inspectedKeyData.plan}</strong></div>
+                          <div><span className="text-slate-400 block text-[10px]">MAX USERS</span> <strong className="text-slate-100">{inspectedKeyData.maxUsers} Users</strong></div>
+                          <div><span className="text-slate-400 block text-[10px]">PRICE</span> <strong className="text-slate-100">${inspectedKeyData.monthlyPrice}/mo</strong></div>
+                          <div><span className="text-slate-400 block text-[10px]">YEAR</span> <strong className="text-slate-100">{inspectedKeyData.year}</strong></div>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Permitted Features:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {inspectedKeyData.features?.map(feat => (
+                              <span key={feat} className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-emerald-400 border border-slate-700">
+                                ✓ {feat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="font-semibold">⚠️ Validation Error: {inspectedKeyData.error}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* LICENSES TABLE */}
               <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl overflow-hidden shadow-sm">
                 <table className="w-full text-left text-xs text-slate-300">
                   <thead className="bg-slate-800/80 text-slate-400 uppercase text-[10px] font-extrabold tracking-wider border-b border-slate-700">
                     <tr>
-                      <th className="p-3.5">License Key</th>
+                      <th className="p-3.5">Structured License Key</th>
                       <th className="p-3.5">Tenant Name</th>
                       <th className="p-3.5">Plan Tier</th>
-                      <th className="p-3.5">Seats</th>
+                      <th className="p-3.5">User Quota</th>
+                      <th className="p-3.5">MRR</th>
                       <th className="p-3.5">Expiry Date</th>
-                      <th className="p-3.5">Days Remaining</th>
                       <th className="p-3.5">Status</th>
-                      <th className="p-3.5 text-right">Action</th>
+                      <th className="p-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/80">
                     {licenses.map(lic => (
                       <tr key={lic.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3.5 font-mono text-emerald-400 font-bold">{lic.id}</td>
+                        <td className="p-3.5 font-mono text-emerald-400 font-bold flex items-center gap-2">
+                          <Key className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{lic.key || lic.id}</span>
+                        </td>
                         <td className="p-3.5 font-semibold text-slate-200">{lic.tenantName}</td>
                         <td className="p-3.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
-                            {lic.plan}
-                          </span>
+                          <select
+                            value={lic.plan}
+                            onChange={(e) => handleUpgradeLicenseTier(lic.id, e.target.value)}
+                            className="bg-slate-800 text-slate-200 text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                          >
+                            <option value={LICENSE_TIERS.TRIAL}>Trial (3 Users)</option>
+                            <option value={LICENSE_TIERS.STARTER}>Starter (5 Users)</option>
+                            <option value={LICENSE_TIERS.FULL}>Full (15 Users)</option>
+                            <option value={LICENSE_TIERS.ENTERPRISE}>Enterprise (50 Users)</option>
+                          </select>
                         </td>
-                        <td className="p-3.5 font-mono">{lic.seats} Seats</td>
+                        <td className="p-3.5 font-mono font-bold text-slate-200">{lic.seats} Users</td>
+                        <td className="p-3.5 font-mono text-emerald-400 font-bold">${lic.monthlyPrice || 0}/mo</td>
                         <td className="p-3.5 font-mono text-slate-400">{lic.expiryDate}</td>
-                        <td className="p-3.5 font-mono font-bold">
-                          <span className={lic.daysLeft <= 30 ? 'text-amber-400' : 'text-emerald-400'}>
-                            {lic.daysLeft} days
-                          </span>
-                        </td>
                         <td className="p-3.5">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                             lic.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            lic.status === 'Suspended' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
                             'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           }`}>
                             {lic.status}
                           </span>
                         </td>
                         <td className="p-3.5 text-right">
-                          <button
-                            onClick={() => handleRenewLicense(lic.id)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[11px] font-bold transition-all border border-emerald-500/30"
-                          >
-                            Renew License
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleRenewLicense(lic.id)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white text-[11px] font-bold transition-all border border-emerald-500/30"
+                              title="Extend subscription by 12 months"
+                            >
+                              Renew
+                            </button>
+
+                            <button
+                              onClick={() => handleToggleSuspendLicense(lic.id)}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all border ${
+                                lic.status === 'Suspended'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                  : 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-600 hover:text-white'
+                              }`}
+                              title={lic.status === 'Suspended' ? 'Reactivate License' : 'Freeze & Suspend Tenant'}
+                            >
+                              {lic.status === 'Suspended' ? 'Reactivate' : 'Freeze'}
+                            </button>
+
+                            <button
+                              onClick={() => handleExportLicenseJson(lic)}
+                              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition-all border border-slate-700"
+                              title="Export License Certificate JSON"
+                            >
+                              JSON
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1050,6 +1286,114 @@ export default function SuperAdminCommandCenter({
                   className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/20"
                 >
                   Create & Issue License
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {/* ========================================================================= */}
+      {/* 5. MODAL: GENERATE NEW LICENSE KEY */}
+      {/* ========================================================================= */}
+      {isGenLicenseOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-emerald-400" />
+                <span>Generate Cryptographic License Key</span>
+              </h3>
+              <button 
+                onClick={() => setIsGenLicenseOpen(false)}
+                className="text-slate-400 hover:text-slate-200 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleGenerateLicenseSubmit} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Target Store Tenant</label>
+                <select
+                  value={genTenantId}
+                  onChange={(e) => setGenTenantId(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">Select Tenant Store...</option>
+                  {tenants.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Select Licensing Tier</label>
+                  <select
+                    value={genPlan}
+                    onChange={(e) => setGenPlan(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 font-bold text-emerald-400"
+                  >
+                    <option value={LICENSE_TIERS.TRIAL}>Trial (Max 3 Users)</option>
+                    <option value={LICENSE_TIERS.STARTER}>Starter ($49/mo • 5 Users)</option>
+                    <option value={LICENSE_TIERS.FULL}>Full ($149/mo • 15 Users)</option>
+                    <option value={LICENSE_TIERS.ENTERPRISE}>Enterprise ($399/mo • 50 Users)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">User Seat Quota</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="200"
+                    value={genSeats}
+                    onChange={(e) => setGenSeats(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Subscription Duration (Months)</label>
+                <select
+                  value={genDuration}
+                  onChange={(e) => setGenDuration(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500 font-mono"
+                >
+                  <option value={1}>1 Month (Monthly)</option>
+                  <option value={3}>3 Months (Quarterly)</option>
+                  <option value={6}>6 Months (Semi-Annual)</option>
+                  <option value={12}>12 Months (Annual - 1 Year)</option>
+                  <option value={24}>24 Months (Multi-Year - 2 Years)</option>
+                </select>
+              </div>
+
+              {/* TIER PREVIEW BOX */}
+              <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-[11px] space-y-1">
+                <span className="font-bold text-slate-300 uppercase tracking-wider block text-[10px]">Tier Preview ({genPlan}):</span>
+                <p className="text-slate-400">{TIER_CAPABILITIES[genPlan]?.description}</p>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {TIER_CAPABILITIES[genPlan]?.features.map(f => (
+                    <span key={f} className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[9px] font-mono border border-emerald-500/20">
+                      ✓ {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsGenLicenseOpen(false)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-md shadow-emerald-600/20"
+                >
+                  Generate & Activate Key
                 </button>
               </div>
             </form>

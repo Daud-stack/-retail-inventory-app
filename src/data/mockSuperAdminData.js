@@ -69,55 +69,67 @@ export const MOCK_TENANTS = [
 export const MOCK_LICENSES = [
   {
     id: 'LIC-89201',
+    key: 'NEXUS-FUL-2025-A892-F104',
     tenantId: 'tenant-1',
     tenantName: 'Harare Primary School & Retail Store',
     plan: 'Full',
     seats: 15,
     maxUsers: 15,
+    monthlyPrice: 149,
     issuedDate: '2025-01-15',
     expiryDate: '2027-01-15',
     daysLeft: 534,
     status: 'Active',
-    autoRenew: true
+    autoRenew: true,
+    features: ['pos', 'catalog', 'barcode_scan', 'stock_manager', 'forecasting']
   },
   {
     id: 'LIC-89202',
+    key: 'NEXUS-ENT-2025-B492-E882',
     tenantId: 'tenant-2',
     tenantName: 'Bulawayo Central Depot',
     plan: 'Enterprise',
     seats: 50,
     maxUsers: 50,
+    monthlyPrice: 399,
     issuedDate: '2025-03-20',
     expiryDate: '2026-08-25',
     daysLeft: 26,
     status: 'Expiring Soon',
-    autoRenew: false
+    autoRenew: false,
+    features: ['pos', 'catalog', 'barcode_scan', 'stock_manager', 'forecasting', 'retail_intelligence', 'multi_store_sync', 'api_webhooks']
   },
   {
     id: 'LIC-89203',
+    key: 'NEXUS-STR-2025-C192-S401',
     tenantId: 'tenant-3',
     tenantName: 'Mutare Express Outlet',
     plan: 'Starter',
     seats: 5,
     maxUsers: 5,
+    monthlyPrice: 49,
     issuedDate: '2025-06-10',
     expiryDate: '2026-12-10',
     daysLeft: 133,
     status: 'Active',
-    autoRenew: true
+    autoRenew: true,
+    features: ['pos', 'catalog', 'barcode_scan', 'stock_manager']
   },
   {
     id: 'LIC-89204',
+    key: 'NEXUS-TRL-2026-T920-X100',
     tenantId: 'tenant-4',
     tenantName: 'Gweru Hub Station',
     plan: 'Trial',
     seats: 3,
     maxUsers: 3,
+    monthlyPrice: 0,
     issuedDate: '2026-06-01',
     expiryDate: '2026-08-01',
     daysLeft: 2,
     status: 'Expiring Soon',
-    autoRenew: false
+    autoRenew: false,
+    features: ['pos', 'catalog']
   }
 ];
 
