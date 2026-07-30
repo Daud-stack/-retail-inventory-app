@@ -137,7 +137,7 @@ export default function UserManagementModal({
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {users.map((usr) => {
+                {users.filter(u => u.role !== ROLES.SUPER_ADMIN).map((usr) => {
                   const isCurrent = currentUser?.id === usr.id;
                   const isSuperAdminAccount = usr.role === ROLES.SUPER_ADMIN;
                   const canSwitchToThisUser = !isSuperAdminAccount || currentUser?.role === ROLES.SUPER_ADMIN;
