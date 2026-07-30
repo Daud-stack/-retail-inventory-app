@@ -159,7 +159,7 @@ export default function UserManagementModal({
                             {usr.role} Account
                             {isCurrent && <UserCheck className="w-3.5 h-3.5 text-emerald-400" />}
                           </h4>
-                          <span className="text-[10px] font-mono text-slate-400 block mt-0.5">PIN: {usr.pin}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Role Credentials</span>
                         </div>
                       </div>
 

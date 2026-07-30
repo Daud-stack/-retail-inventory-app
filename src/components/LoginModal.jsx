@@ -94,7 +94,7 @@ export default function LoginModal({
                     </div>
                     <div className="truncate">
                       <span className="text-xs font-bold block truncate leading-tight">{usr.role}</span>
-                      <span className="text-[10px] font-mono text-slate-400 block mt-0.5">PIN: {usr.pin}</span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Role Authorization</span>
                     </div>
                   </div>
 
@@ -113,7 +113,7 @@ export default function LoginModal({
                 <Lock className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Security PIN for {selectedUser?.role} Account</span>
               </label>
-              <span className="text-[10px] font-mono text-emerald-400 font-bold">Default PIN: {selectedUser?.pin}</span>
+              <span className="text-[10px] font-mono text-slate-400">4-Digit Code Required</span>
             </div>
 
             <input
