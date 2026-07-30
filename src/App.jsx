@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ShieldAlert, LogOut } from 'lucide-react';
 import { INITIAL_PRODUCTS, MOCK_RECENT_TRANSACTIONS } from './data/mockData';
 import { INITIAL_USERS, ROLES, PERMISSIONS, hasPermission } from './config/rbac';
@@ -17,7 +17,27 @@ import ForecastingView from './components/ForecastingView';
 import DataScienceAnalyticsView from './components/DataScienceAnalyticsView';
 import SuperAdminCommandCenter from './components/SuperAdminCommandCenter';
 import LoginModal from './components/LoginModal';
+import SessionWarningModal from './components/SessionWarningModal';
+import NotificationCenter from './components/NotificationCenter';
+import AuditLogViewer from './components/AuditLogViewer';
+import ReportsView from './components/ReportsView';
+import CustomerManagementView from './components/CustomerManagementView';
+import SupplierManagementView from './components/SupplierManagementView';
+import DataImportExportView from './components/DataImportExportView';
+import OnboardingTour from './components/OnboardingTour';
 import { executeCheckoutInvoice } from './services/inventoryEngine';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
+import { logAuditEvent, AUDIT_ACTIONS } from './services/auditLogger';
+import {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  markAllAsRead,
+  dismissNotification,
+  clearAllNotifications,
+  checkLowStockAlerts,
+  checkExpiryAlerts
+} from './services/notificationEngine';
 
 export default function App() {
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
@@ -29,16 +49,44 @@ export default function App() {
   const [users, setUsers] = useState(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); // Alex Thorne (Super Admin)
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [notifications, setNotifications] = useState(getNotifications());
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Session Timeout Hook (15 min inactivity, 2 min warning)
+  const { isWarningVisible, remainingSeconds, resetTimer } = useSessionTimeout({
+    timeoutDuration: 900000,
+    warningDuration: 120000,
+    onTimeout: () => {
+      logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: AUDIT_ACTIONS.LOGOUT, target: 'Session', details: 'Auto-logout due to inactivity' });
+      setIsLoggedIn(false);
+    }
+  });
+
+  // Refresh notifications from engine
+  const refreshNotifications = useCallback(() => {
+    setNotifications(getNotifications());
+  }, []);
+
+  // Check low stock & expiry alerts whenever products change
+  useEffect(() => {
+    if (isLoggedIn) {
+      checkLowStockAlerts(products);
+      checkExpiryAlerts(products);
+      refreshNotifications();
+    }
+  }, [products, isLoggedIn, refreshNotifications]);
+
   const handleSwitchUser = (selectedUser) => {
-    // Require strict PIN authentication for switching account sessions
+    logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: AUDIT_ACTIONS.SWITCH_USER, target: 'Session', details: 'User initiated role switch' });
     setIsLoggedIn(false);
     setIsUserManagementOpen(false);
   };
 
   const handleLogout = () => {
+    logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: AUDIT_ACTIONS.LOGOUT, target: 'Session', details: 'Manual logout' });
     setIsLoggedIn(false);
   };
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
@@ -92,6 +140,7 @@ export default function App() {
   };
 
   const handleSaveProduct = (savedProduct) => {
+    const isEdit = products.some(p => p.id === savedProduct.id);
     setProducts(prev => {
       const index = prev.findIndex(p => p.id === savedProduct.id);
       if (index !== -1) {
@@ -102,10 +151,12 @@ export default function App() {
         return [savedProduct, ...prev];
       }
     });
+    logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: isEdit ? AUDIT_ACTIONS.EDIT_PRODUCT : AUDIT_ACTIONS.CREATE_PRODUCT, target: savedProduct.name, details: `${isEdit ? 'Updated' : 'Created'} product: ${savedProduct.name}` });
   };
 
   const handleCreateUser = (newUser) => {
     setUsers(prev => [...prev, newUser]);
+    logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: AUDIT_ACTIONS.CREATE_USER, target: newUser.name, details: `Created ${newUser.role} account` });
   };
 
   // Barcode Scanner completion handler
@@ -172,6 +223,7 @@ export default function App() {
         onLoginSuccess={(user) => {
           setCurrentUser(user);
           setIsLoggedIn(true);
+          logAuditEvent({ userId: user.id, userName: user.name, role: user.role, action: AUDIT_ACTIONS.LOGIN, target: 'Session', details: `${user.role} logged in` });
           if (user.role === ROLES.SUPER_ADMIN) {
             setActiveTab('superadmin');
           } else if (user.role === ROLES.CASHIER) {
@@ -231,10 +283,12 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           cartCount={totalCartUnits}
           currentUser={currentUser}
+          notificationCount={getUnreadCount()}
           onOpenUserManagement={() => setIsUserManagementOpen(true)}
           onOpenScanner={() => setIsScannerOpen(true)}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onOpenQuickCart={() => setIsQuickCartOpen(true)}
+          onOpenNotifications={() => { refreshNotifications(); setIsNotificationCenterOpen(true); }}
           onLogout={handleLogout}
         />
 
@@ -376,6 +430,91 @@ export default function App() {
               />
             )
           )}
+
+          {effectiveTab === 'audit-logs' && (
+            hasPermission(currentUser?.role, PERMISSIONS.VIEW_AUDIT_LOGS) ? (
+              <AuditLogViewer currentUser={currentUser} />
+            ) : (
+              <AccessRestrictedBanner 
+                role={currentUser?.role} 
+                tabName="System Audit Trail" 
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onLogout={handleLogout}
+              />
+            )
+          )}
+
+          {effectiveTab === 'reports' && (
+            hasPermission(currentUser?.role, PERMISSIONS.VIEW_FINANCIALS) ? (
+              <ReportsView 
+                products={products}
+                transactions={transactions}
+                stockMovements={stockMovements}
+                currentUser={currentUser}
+              />
+            ) : (
+              <AccessRestrictedBanner 
+                role={currentUser?.role} 
+                tabName="Reports & Analytics" 
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onLogout={handleLogout}
+              />
+            )
+          )}
+
+          {effectiveTab === 'customers' && (
+            hasPermission(currentUser?.role, PERMISSIONS.MANAGE_CUSTOMERS) ? (
+              <CustomerManagementView currentUser={currentUser} />
+            ) : (
+              <AccessRestrictedBanner 
+                role={currentUser?.role} 
+                tabName="Customer Management" 
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onLogout={handleLogout}
+              />
+            )
+          )}
+
+          {effectiveTab === 'suppliers' && (
+            hasPermission(currentUser?.role, PERMISSIONS.MANAGE_SUPPLIERS) ? (
+              <SupplierManagementView products={products} currentUser={currentUser} />
+            ) : (
+              <AccessRestrictedBanner 
+                role={currentUser?.role} 
+                tabName="Supplier & Order Management" 
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onLogout={handleLogout}
+              />
+            )
+          )}
+
+          {effectiveTab === 'data-center' && (
+            hasPermission(currentUser?.role, PERMISSIONS.MANAGE_DATA) ? (
+              <DataImportExportView 
+                products={products}
+                transactions={transactions}
+                stockMovements={stockMovements}
+                users={users}
+                onImportProducts={(importedProds) => {
+                  setProducts(importedProds);
+                  logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: AUDIT_ACTIONS.EXPORT_DATA, target: 'Catalog', details: 'Imported products CSV' });
+                }}
+                onRestoreBackup={(backupData) => {
+                  if (backupData.products) setProducts(backupData.products);
+                  if (backupData.transactions) setTransactions(backupData.transactions);
+                  if (backupData.users) setUsers(backupData.users);
+                  logAuditEvent({ userId: currentUser?.id, userName: currentUser?.name, role: currentUser?.role, action: AUDIT_ACTIONS.EXPORT_DATA, target: 'System', details: 'Restored full JSON backup' });
+                }}
+              />
+            ) : (
+              <AccessRestrictedBanner 
+                role={currentUser?.role} 
+                tabName="Data & Backups" 
+                onNavigate={() => setActiveTab(currentUser?.role === ROLES.CASHIER ? 'pos' : 'products')}
+                onLogout={handleLogout}
+              />
+            )
+          )}
         </main>
       </div>
 
@@ -414,6 +553,32 @@ export default function App() {
         cart={cart}
         invoiceMeta={receiptMeta}
         onFinalizeCheckout={handleFinalizeCheckout}
+      />
+
+      {/* Session Timeout Warning Modal */}
+      <SessionWarningModal 
+        isVisible={isWarningVisible}
+        remainingSeconds={remainingSeconds}
+        onContinue={resetTimer}
+        onLogout={handleLogout}
+      />
+
+      {/* Notification Center Slide-Out */}
+      <NotificationCenter 
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+        notifications={notifications}
+        onMarkAsRead={(id) => { markAsRead(id); refreshNotifications(); }}
+        onMarkAllAsRead={() => { markAllAsRead(); refreshNotifications(); }}
+        onDismiss={(id) => { dismissNotification(id); refreshNotifications(); }}
+        onClearAll={() => { clearAllNotifications(); refreshNotifications(); }}
+      />
+
+      {/* Interactive Onboarding Walkthrough */}
+      <OnboardingTour 
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        userRole={currentUser?.role}
       />
     </div>
   );

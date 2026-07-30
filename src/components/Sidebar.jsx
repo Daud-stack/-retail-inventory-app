@@ -15,7 +15,13 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   X,
-  Shield
+  Shield,
+  FileText,
+  ShieldCheck,
+  ClipboardList,
+  UserCheck,
+  Truck,
+  Database
 } from 'lucide-react';
 import { ROLES, PERMISSIONS, hasPermission } from '../config/rbac';
 
@@ -82,6 +88,41 @@ export default function Sidebar({
       badgeColor: 'bg-emerald-500',
       desc: 'Checkout & Receipt',
       permission: PERMISSIONS.EXECUTE_POS
+    },
+    {
+      id: 'reports',
+      label: 'Reports & Export',
+      icon: FileText,
+      desc: 'Sales, Tax & Inventory',
+      permission: PERMISSIONS.VIEW_FINANCIALS
+    },
+    {
+      id: 'audit-logs',
+      label: 'Audit Trail',
+      icon: ClipboardList,
+      desc: 'Security Event Logs',
+      permission: PERMISSIONS.VIEW_AUDIT_LOGS
+    },
+    {
+      id: 'customers',
+      label: 'Customers & Loyalty',
+      icon: UserCheck,
+      desc: 'Profiles & Points',
+      permission: PERMISSIONS.MANAGE_CUSTOMERS
+    },
+    {
+      id: 'suppliers',
+      label: 'Suppliers & Orders',
+      icon: Truck,
+      desc: 'Vendor PO Tracking',
+      permission: PERMISSIONS.MANAGE_SUPPLIERS
+    },
+    {
+      id: 'data-center',
+      label: 'Data & Backups',
+      icon: Database,
+      desc: 'CSV Import & JSON Backup',
+      permission: PERMISSIONS.MANAGE_DATA
     }
   ];
 

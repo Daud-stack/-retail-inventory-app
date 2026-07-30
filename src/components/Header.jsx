@@ -6,7 +6,8 @@ import {
   Clock, 
   Menu,
   ShieldCheck,
-  LogOut
+  LogOut,
+  Bell
 } from 'lucide-react';
 import { ROLES } from '../config/rbac';
 
@@ -17,10 +18,12 @@ export default function Header({
   setSearchQuery, 
   cartCount,
   currentUser,
+  notificationCount,
   onOpenUserManagement,
   onOpenScanner,
   onOpenMobileMenu,
   onOpenQuickCart,
+  onOpenNotifications,
   onLogout
 }) {
   const [timeStr, setTimeStr] = useState('');
@@ -43,7 +46,12 @@ export default function Header({
     datascience: { title: 'Retail Intelligence & Data Science', subtitle: 'Market Basket Analysis (Apriori), FSN Velocity & ABC Pareto Rules' },
     users: { title: 'User & Role Management', subtitle: 'Store Accounts, Credentials & RBAC Matrix' },
     pos: { title: 'POS Checkout', subtitle: 'Cart List, Taxes & PDF Receipt' },
-    superadmin: { title: 'Super Admin Command Center', subtitle: 'Full Platform Control — Stores, Licenses & System Health' }
+    superadmin: { title: 'Super Admin Command Center', subtitle: 'Full Platform Control — Stores, Licenses & System Health' },
+    'audit-logs': { title: 'System Audit Trail', subtitle: 'Security Events, User Actions & Compliance Logs' },
+    reports: { title: 'Reports & Analytics Center', subtitle: 'Sales, Inventory, Tax & ZIMRA Z-Reports' },
+    customers: { title: 'Customer & Loyalty Management', subtitle: 'Customer Profiles, Tier Progression & Rewards' },
+    suppliers: { title: 'Supplier & Purchase Order System', subtitle: 'Vendor Management, Lead Times & Auto-PO Generation' },
+    'data-center': { title: 'Data Center — Import, Export & Backup', subtitle: 'Product Catalog CSV Ingestion & Full Store State Backups' }
   };
 
   const currentInfo = tabTitles[activeTab] || tabTitles.dashboard;
@@ -116,6 +124,20 @@ export default function Header({
         >
           <ScanLine className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
           <span className="hidden sm:inline">Scan SKU</span>
+        </button>
+
+        {/* Notification Bell */}
+        <button
+          onClick={onOpenNotifications}
+          className="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-all hover:scale-105 active:scale-95"
+          title="View Notifications"
+        >
+          <Bell className="w-4 h-4 text-amber-400" />
+          {(notificationCount || 0) > 0 && (
+            <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-red-500 text-white font-black text-[10px] flex items-center justify-center animate-bounce shadow-md">
+              {notificationCount > 9 ? '9+' : notificationCount}
+            </span>
+          )}
         </button>
 
         {/* POS Cart Direct Link */}
