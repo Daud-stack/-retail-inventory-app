@@ -135,7 +135,10 @@ export default function UserManagementView({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {users.map((usr) => {
             const isCurrent = currentUser?.id === usr.id;
-            const roleCode = usr.role === ROLES.SUPER_ADMIN ? 'SA' :
+            const isSuperAdminAccount = usr.role === ROLES.SUPER_ADMIN;
+            const canSwitchToThisUser = !isSuperAdminAccount || currentUser?.role === ROLES.SUPER_ADMIN;
+
+            const roleCode = isSuperAdminAccount ? 'SA' :
                              usr.role === ROLES.ADMIN ? 'ADM' :
                              usr.role === ROLES.MANAGER ? 'MGR' :
                              usr.role === ROLES.CASHIER ? 'POS' : 'CLK';
@@ -145,7 +148,9 @@ export default function UserManagementView({
                 className={`p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-4 ${
                   isCurrent
                     ? 'bg-indigo-950/40 border-indigo-500/50 shadow-xl ring-1 ring-indigo-500/30'
-                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                    : canSwitchToThisUser
+                      ? 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      : 'bg-slate-950/40 border-slate-800/50 opacity-60'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -174,17 +179,24 @@ export default function UserManagementView({
                 </div>
 
                 <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-slate-400">Security Credentials Verified</span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {isSuperAdminAccount && !canSwitchToThisUser ? 'Super Admin Protected' : 'Security Credentials Verified'}
+                  </span>
 
                   <button
-                    onClick={() => onSwitchUser(usr)}
+                    disabled={!canSwitchToThisUser}
+                    onClick={() => {
+                      if (canSwitchToThisUser) onSwitchUser(usr);
+                    }}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       isCurrent 
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 cursor-default'
-                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20'
+                        : canSwitchToThisUser
+                          ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20'
+                          : 'bg-slate-950 text-slate-400 border border-slate-800 text-[10px] cursor-not-allowed'
                     }`}
                   >
-                    {isCurrent ? 'Active Session' : 'Switch Role'}
+                    {isCurrent ? 'Active Session' : canSwitchToThisUser ? 'Switch Role' : 'Protected'}
                   </button>
                 </div>
               </div>
@@ -239,7 +251,10 @@ export default function UserManagementView({
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value={ROLES.ADMIN}>Admin (Full Store Management)</option>
+                  {currentUser?.role === ROLES.SUPER_ADMIN && (
+                    <option value={ROLES.SUPER_ADMIN}>Super Admin (Multi-Tenant Command Center)</option>
+                  )}
+                  <option value={ROLES.ADMIN}>Admin (Full Store Access)</option>
                   <option value={ROLES.MANAGER}>Manager (Inventory & Analytics)</option>
                   <option value={ROLES.CASHIER}>Cashier (POS & Invoicing)</option>
                   <option value={ROLES.CLERK}>Stock Clerk (Catalog & Restock)</option>

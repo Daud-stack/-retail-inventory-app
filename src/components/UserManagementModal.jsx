@@ -135,18 +135,25 @@ export default function UserManagementModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {users.map((usr) => {
                   const isCurrent = currentUser?.id === usr.id;
-                  const roleCode = usr.role === ROLES.SUPER_ADMIN ? 'SA' :
+                  const isSuperAdminAccount = usr.role === ROLES.SUPER_ADMIN;
+                  const canSwitchToThisUser = !isSuperAdminAccount || currentUser?.role === ROLES.SUPER_ADMIN;
+
+                  const roleCode = isSuperAdminAccount ? 'SA' :
                                    usr.role === ROLES.ADMIN ? 'ADM' :
                                    usr.role === ROLES.MANAGER ? 'MGR' :
                                    usr.role === ROLES.CASHIER ? 'POS' : 'CLK';
                   return (
                     <div
                       key={usr.id}
-                      onClick={() => onSwitchUser(usr)}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                      onClick={() => {
+                        if (canSwitchToThisUser) onSwitchUser(usr);
+                      }}
+                      className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${
                         isCurrent
                           ? 'bg-indigo-950/60 border-indigo-500 shadow-md ring-1 ring-indigo-500/50'
-                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'
+                          : canSwitchToThisUser 
+                            ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60 cursor-pointer'
+                            : 'bg-slate-950/40 border-slate-800/50 opacity-60 cursor-not-allowed'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -159,19 +166,27 @@ export default function UserManagementModal({
                             {usr.role} Account
                             {isCurrent && <UserCheck className="w-3.5 h-3.5 text-emerald-400" />}
                           </h4>
-                          <span className="text-[10px] text-slate-400 block mt-0.5">Role Credentials</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            {isSuperAdminAccount && !canSwitchToThisUser ? 'Protected Role' : 'Role Credentials'}
+                          </span>
                         </div>
                       </div>
 
                       <button
-                        onClick={(e) => { e.stopPropagation(); onSwitchUser(usr); }}
+                        disabled={!canSwitchToThisUser}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (canSwitchToThisUser) onSwitchUser(usr);
+                        }}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                           isCurrent 
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-slate-800 text-slate-300 hover:bg-indigo-600 hover:text-white'
+                            : canSwitchToThisUser
+                              ? 'bg-slate-800 text-slate-300 hover:bg-indigo-600 hover:text-white'
+                              : 'bg-slate-950 text-slate-400 border border-slate-800 text-[10px]'
                         }`}
                       >
-                        {isCurrent ? 'Active' : 'Switch'}
+                        {isCurrent ? 'Active' : canSwitchToThisUser ? 'Switch' : 'Protected'}
                       </button>
                     </div>
                   );
@@ -221,7 +236,9 @@ export default function UserManagementModal({
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
                   >
-                    <option value={ROLES.SUPER_ADMIN}>Super Admin (Multi-Tenant Command Center)</option>
+                    {currentUser?.role === ROLES.SUPER_ADMIN && (
+                      <option value={ROLES.SUPER_ADMIN}>Super Admin (Multi-Tenant Command Center)</option>
+                    )}
                     <option value={ROLES.ADMIN}>Admin (Full Store Access)</option>
                     <option value={ROLES.MANAGER}>Store Manager</option>
                     <option value={ROLES.CASHIER}>Cashier (POS Checkout Only)</option>
