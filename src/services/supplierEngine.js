@@ -83,13 +83,24 @@ export const createPurchaseOrder = (poData) => {
   return newPO;
 };
 
-export const updatePOStatus = (id, newStatus) => {
+export const updatePOStatus = (id, newStatus, onRestockProduct = null) => {
   const validStatuses = ['Draft', 'Sent', 'Confirmed', 'Received', 'Cancelled'];
   if (!validStatuses.includes(newStatus)) return null;
 
   const index = purchaseOrders.findIndex(po => po.id === id);
   if (index !== -1) {
+    const prevStatus = purchaseOrders[index].status;
     purchaseOrders[index].status = newStatus;
+    
+    // If order transitioned to Received, restock items in inventory
+    if (newStatus === 'Received' && prevStatus !== 'Received' && onRestockProduct && purchaseOrders[index].items) {
+      purchaseOrders[index].items.forEach(item => {
+        if (item.productId && item.quantity) {
+          onRestockProduct(item.productId, item.quantity);
+        }
+      });
+    }
+    
     savePOs();
     return purchaseOrders[index];
   }
@@ -97,15 +108,15 @@ export const updatePOStatus = (id, newStatus) => {
 };
 
 export const generatePOFromLowStock = (products) => {
-    const lowStockProducts = products.filter(p => p.stock <= p.lowStockThreshold);
+    const lowStockProducts = products.filter(p => p.stock <= (p.minStock ?? p.lowStockThreshold ?? 10));
     if (lowStockProducts.length === 0) return [];
     
-    // Simplistic grouping by category to map to suppliers (mock logic)
+    // Grouping by category to map to suppliers
     const groupedPOs = {};
     
     lowStockProducts.forEach(product => {
         // Find a supplier that handles this category
-        const supplier = suppliers.find(s => s.categories.includes(product.category)) || suppliers[0];
+        const supplier = suppliers.find(s => s.categories.includes(product.category)) || suppliers[0] || { id: 'sup-1', name: 'General Distributor' };
         
         if (!groupedPOs[supplier.id]) {
             groupedPOs[supplier.id] = {
@@ -115,8 +126,9 @@ export const generatePOFromLowStock = (products) => {
             };
         }
         
-        const orderQty = Math.max((product.lowStockThreshold * 2) - product.stock, 10);
-        const itemCost = product.price * 0.6; // Assuming 40% margin
+        const threshold = product.minStock ?? product.lowStockThreshold ?? 10;
+        const orderQty = Math.max((threshold * 2) - product.stock, 10);
+        const itemCost = product.price ? product.price * 0.6 : 10; // 40% margin estimate
         
         groupedPOs[supplier.id].items.push({
             productId: product.id,
@@ -138,3 +150,4 @@ export const generatePOFromLowStock = (products) => {
 
 // Initialize
 loadData();
+

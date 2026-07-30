@@ -477,7 +477,7 @@ export default function App() {
 
           {effectiveTab === 'suppliers' && (
             hasPermission(currentUser?.role, PERMISSIONS.MANAGE_SUPPLIERS) ? (
-              <SupplierManagementView products={products} currentUser={currentUser} />
+              <SupplierManagementView products={products} onRestockItem={handleRestockItem} currentUser={currentUser} />
             ) : (
               <AccessRestrictedBanner 
                 role={currentUser?.role} 
