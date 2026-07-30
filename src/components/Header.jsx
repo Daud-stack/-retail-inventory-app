@@ -5,7 +5,8 @@ import {
   ShoppingCart, 
   Clock, 
   Menu,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 import { ROLES } from '../config/rbac';
 
@@ -19,7 +20,8 @@ export default function Header({
   onOpenUserManagement,
   onOpenScanner,
   onOpenMobileMenu,
-  onOpenQuickCart
+  onOpenQuickCart,
+  onLogout
 }) {
   const [timeStr, setTimeStr] = useState('');
 
@@ -132,6 +134,15 @@ export default function Header({
               {cartCount}
             </span>
           )}
+        </button>
+
+        {/* LOGOUT / LOCK SESSION BUTTON */}
+        <button
+          onClick={onLogout}
+          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-all"
+          title="Lock Session & Log Out"
+        >
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </header>

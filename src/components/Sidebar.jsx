@@ -16,7 +16,7 @@ import {
   X,
   Shield
 } from 'lucide-react';
-import { ROLES } from '../config/rbac';
+import { ROLES, PERMISSIONS, hasPermission } from '../config/rbac';
 
 export default function Sidebar({ 
   activeTab, 
@@ -29,36 +29,42 @@ export default function Sidebar({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const baseNavItems = [
+  // Permission-based item filtering
+  const itemsWithPermissions = [
     {
       id: 'dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
-      desc: 'Overview & Analytics'
+      desc: 'Overview & Analytics',
+      permission: PERMISSIONS.VIEW_DASHBOARD
     },
     {
       id: 'products',
       label: 'Product Catalog',
       icon: PackageSearch,
-      desc: 'Filtered Stock View'
+      desc: 'Filtered Stock View',
+      permission: PERMISSIONS.VIEW_PRODUCTS
     },
     {
       id: 'add-product',
       label: 'Stock Manager',
       icon: PackagePlus,
-      desc: 'Add & Barcode Scan'
+      desc: 'Add & Barcode Scan',
+      permission: PERMISSIONS.ADD_PRODUCT
     },
     {
       id: 'forecasting',
       label: 'Stock Forecasting',
       icon: TrendingUp,
-      desc: 'Time Series Predictions'
+      desc: 'Time Series Predictions',
+      permission: PERMISSIONS.VIEW_DASHBOARD
     },
     {
       id: 'datascience',
       label: 'Retail Intelligence',
       icon: BrainCircuit,
-      desc: 'Market Basket & FSN'
+      desc: 'Market Basket & FSN',
+      permission: PERMISSIONS.VIEW_FINANCIALS
     },
     {
       id: 'pos',
@@ -66,9 +72,16 @@ export default function Sidebar({
       icon: ShoppingCart,
       badge: cartCount > 0 ? cartCount : null,
       badgeColor: 'bg-emerald-500',
-      desc: 'Checkout & Receipt'
+      desc: 'Checkout & Receipt',
+      permission: PERMISSIONS.EXECUTE_POS
     }
   ];
+
+  const userRole = currentUser?.role || ROLES.CASHIER;
+
+  const filteredBaseNav = itemsWithPermissions.filter(item => 
+    hasPermission(userRole, item.permission)
+  );
 
   const superAdminItem = {
     id: 'superadmin',
@@ -79,9 +92,10 @@ export default function Sidebar({
     desc: 'Multi-Tenant Control'
   };
 
-  const navItems = (currentUser?.role === ROLES.SUPER_ADMIN || activeTab === 'superadmin')
-    ? [superAdminItem, ...baseNavItems]
-    : [...baseNavItems, superAdminItem];
+  // Only include Super Admin item if user has Super Admin permission
+  const navItems = hasPermission(userRole, PERMISSIONS.VIEW_SUPER_ADMIN)
+    ? [superAdminItem, ...filteredBaseNav]
+    : filteredBaseNav;
 
   const handleTabClick = (tabId) => {
     if (document.startViewTransition) {
