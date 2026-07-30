@@ -36,18 +36,12 @@ export default function LoginModal({
       return;
     }
 
-    setIsVerifying(true);
-
-    setTimeout(() => {
-      if (pinInput === selectedUser.pin) {
-        setErrorMsg('');
-        setIsVerifying(false);
-        onLoginSuccess(selectedUser);
-      } else {
-        setIsVerifying(false);
-        setErrorMsg(`Invalid PIN for ${selectedUser.name}. Please check your 4-digit code.`);
-      }
-    }, 400);
+    if (pinInput === selectedUser.pin) {
+      setErrorMsg('');
+      onLoginSuccess(selectedUser);
+    } else {
+      setErrorMsg(`Invalid PIN for ${selectedUser.name}. Please check your 4-digit code.`);
+    }
   };
 
   return (
