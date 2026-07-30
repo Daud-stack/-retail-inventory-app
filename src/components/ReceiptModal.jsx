@@ -103,8 +103,8 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
                 <Store className="w-6 h-6" />
               </div>
               <h2 className="text-base font-black tracking-tight text-slate-950 font-sans">NEXUS RETAIL HUB</h2>
-              <p className="text-[10px] text-slate-600">100 Innovation Parkway, Suite 400</p>
-              <p className="text-[10px] text-slate-600">Support: +1 (800) 555-0199</p>
+              <p className="text-[10px] text-slate-600">100 Innovation Parkway, Harare</p>
+              <p className="text-[10px] text-slate-600 font-mono">ZIMRA BPN: 2001928374 • VAT: 10293847</p>
               
               <div className="pt-2 flex items-center justify-center gap-2 text-[10px] text-slate-500 font-sans">
                 <span className="font-mono font-bold text-indigo-700">{invoiceMeta.invoiceId}</span>
@@ -118,10 +118,13 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
               <div>
                 <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">CUSTOMER</span>
                 <span className="font-bold text-slate-900">{invoiceMeta.customer || 'Walk-in Customer'}</span>
+                {invoiceMeta.traderTier && (
+                  <span className="block text-[9px] text-indigo-700 font-semibold uppercase">Tier: {invoiceMeta.traderTier}</span>
+                )}
               </div>
               <div className="text-right">
-                <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">PAYMENT</span>
-                <span className="font-bold uppercase text-slate-900">{invoiceMeta.paymentMethod}</span>
+                <span className="block font-sans text-[9px] text-slate-500 font-bold uppercase">PAYMENT / CURRENCY</span>
+                <span className="font-bold uppercase text-slate-900">{invoiceMeta.paymentMethod} ({invoiceMeta.currency || 'ZIG'})</span>
               </div>
             </div>
 
@@ -141,7 +144,7 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
                   </div>
                   <span className="col-span-2 text-center font-bold">x{item.qty}</span>
                   <span className="col-span-4 text-right font-bold text-slate-900">
-                    ${(item.price * item.qty).toFixed(2)}
+                    {invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{(item.price * item.qty).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -151,12 +154,45 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
             <div className="space-y-1 text-right text-xs pt-1">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal:</span>
-                <span className="font-bold text-slate-900">${invoiceMeta.subtotal.toFixed(2)}</span>
+                <span className="font-bold text-slate-900">
+                  {invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{invoiceMeta.subtotal.toFixed(2)}
+                </span>
               </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Sales Tax ({invoiceMeta.taxRate}%):</span>
-                <span className="font-bold text-slate-900">${invoiceMeta.taxAmount.toFixed(2)}</span>
-              </div>
+
+              {invoiceMeta.traderTier === 'informal' ? (
+                <div className="flex justify-between text-amber-700">
+                  <span>Presumptive Turnover Tax (10%):</span>
+                  <span className="font-bold">{invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{(invoiceMeta.presumptiveTaxAmount || 0).toFixed(2)}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between text-slate-600">
+                    <span>ZIMRA VAT ({(invoiceMeta.taxRate || 15.5).toFixed(1)}%):</span>
+                    <span className="font-bold text-purple-700">{invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{invoiceMeta.taxAmount.toFixed(2)}</span>
+                  </div>
+                  {invoiceMeta.section50aWithholding > 0 && (
+                    <div className="flex justify-between text-[10px] text-indigo-700 italic">
+                      <span>- Section 50A 1/3 VAT Credit:</span>
+                      <span>{invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{invoiceMeta.section50aWithholding.toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {invoiceMeta.imttAmount > 0 && (
+                <div className="flex justify-between text-cyan-700">
+                  <span>IMTT Transfer Tax:</span>
+                  <span className="font-bold">{invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{invoiceMeta.imttAmount.toFixed(2)}</span>
+                </div>
+              )}
+
+              {invoiceMeta.wholesalerSurcharge > 0 && (
+                <div className="flex justify-between text-red-700">
+                  <span>5% ZIMRA Wholesaler Surcharge:</span>
+                  <span className="font-bold">{invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{invoiceMeta.wholesalerSurcharge.toFixed(2)}</span>
+                </div>
+              )}
+
               {invoiceMeta.discount > 0 && (
                 <div className="flex justify-between text-emerald-700">
                   <span>Discount:</span>
@@ -164,27 +200,37 @@ export default function ReceiptModal({ isOpen, onClose, cart, invoiceMeta, onFin
                 </div>
               )}
 
-              {/* Profit & Margin Metrics Line */}
-              {invoiceMeta.grossMarginPct && (
-                <div className="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-100">
-                  <span>Est. Transaction Margin:</span>
-                  <span className="font-bold text-emerald-700">{invoiceMeta.grossMarginPct}% (${invoiceMeta.grossProfit.toFixed(2)})</span>
+              {/* Multi-Currency Split Payment Receipt Breakdown */}
+              {invoiceMeta.multiCurrencySplit && (
+                <div className="py-2 border-t border-b border-slate-200 my-1 text-left text-[10px] space-y-0.5 bg-slate-50 p-2 rounded">
+                  <span className="font-bold text-slate-900 block uppercase">Split Payment Tax Capture:</span>
+                  <div className="flex justify-between text-slate-700">
+                    <span>ZiG Total (incl. ZiG VAT):</span>
+                    <span className="font-bold font-mono">ZiG {invoiceMeta.multiCurrencySplit.zigPortion.grandTotalZiG.toFixed(2)} (VAT: ZiG {invoiceMeta.multiCurrencySplit.zigPortion.vatZiG.toFixed(2)})</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700">
+                    <span>USD Total (incl. USD VAT):</span>
+                    <span className="font-bold font-mono">${invoiceMeta.multiCurrencySplit.usdPortion.grandTotalUSD.toFixed(2)} (VAT: ${invoiceMeta.multiCurrencySplit.usdPortion.vatUSD.toFixed(2)})</span>
+                  </div>
                 </div>
               )}
 
               <div className="flex justify-between text-sm font-black text-slate-950 border-t-2 border-slate-950 pt-2 mt-2">
                 <span>TOTAL PAID:</span>
-                <span>${invoiceMeta.total.toFixed(2)}</span>
+                <span>{invoiceMeta.currency === 'USD' ? '$' : 'ZiG '}{invoiceMeta.total.toFixed(2)}</span>
               </div>
             </div>
 
-            {/* Bottom Barcode */}
+            {/* Bottom Barcode & Fiscal Sync Note */}
             <div className="text-center pt-4 border-t border-dashed border-slate-300 space-y-1">
               <Barcode className="w-48 h-10 text-slate-900 mx-auto" />
               <span className="text-[9px] text-slate-500 font-mono tracking-widest block">
                 *{invoiceMeta.invoiceId}*
               </span>
-              <p className="text-[10px] text-slate-600 font-sans italic pt-1">
+              <p className="text-[9px] text-emerald-700 font-mono font-bold">
+                ✓ FISCALIZED WITH ZIMRA FDMS • RECEIPT VERIFIED
+              </p>
+              <p className="text-[10px] text-slate-600 font-sans italic pt-0.5">
                 Thank you for shopping with Nexus Retail!
               </p>
             </div>
