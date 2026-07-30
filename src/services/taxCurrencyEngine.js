@@ -1,8 +1,56 @@
 /**
- * Zimbabwe-specific multi-currency VAT/tax calculation engine.
+ * Zimbabwe-specific multi-currency VAT/tax calculation engine with dynamic updates & persistence.
  */
 
-export const VAT_RATE = 0.155; // 15.5%
+const TAX_STORAGE_KEY = 'nexus_tax_config';
+
+const defaultTaxConfig = {
+  vatRate: 0.155, // 15.5% standard VAT rate
+  exchangeRate: 13.5, // ZiG per 1 USD
+  defaultCurrency: 'ZIG',
+  zeroRatedKeywords: ['bread', 'milk', 'maize meal', 'cooking oil', 'sugar', 'salt', 'fresh fruit', 'fresh vegetable', 'medical', 'agricultural'],
+  exemptKeywords: ['financial', 'educational', 'public transport', 'transport']
+};
+
+let taxConfig = { ...defaultTaxConfig };
+
+// Load persisted configuration
+const loadTaxConfig = () => {
+  const stored = localStorage.getItem(TAX_STORAGE_KEY);
+  if (stored) {
+    try {
+      taxConfig = { ...defaultTaxConfig, ...JSON.parse(stored) };
+    } catch (e) {
+      console.error('Failed to parse tax config', e);
+    }
+  }
+};
+
+const saveTaxConfig = () => {
+  localStorage.setItem(TAX_STORAGE_KEY, JSON.stringify(taxConfig));
+};
+
+loadTaxConfig();
+
+export const getVATRate = () => taxConfig.vatRate;
+export const setVATRate = (newRate) => {
+  taxConfig.vatRate = parseFloat(newRate);
+  saveTaxConfig();
+};
+
+export const getExchangeRate = () => taxConfig.exchangeRate;
+export const setExchangeRate = (rate) => {
+  taxConfig.exchangeRate = parseFloat(rate);
+  saveTaxConfig();
+};
+
+export const getTaxConfig = () => ({ ...taxConfig });
+export const updateTaxConfig = (newConfig) => {
+  taxConfig = { ...taxConfig, ...newConfig };
+  saveTaxConfig();
+};
+
+export const VAT_RATE = taxConfig.vatRate;
 export const DEFAULT_CURRENCY = 'ZIG';
 
 export const CURRENCIES = {
@@ -16,27 +64,14 @@ export const TAX_CATEGORIES = {
   EXEMPT: 'exempt'
 };
 
-const ZERO_RATED_KEYWORDS = ['bread', 'milk', 'maize meal', 'cooking oil', 'sugar', 'salt', 'fresh fruit', 'fresh vegetable', 'medical', 'agricultural'];
-const EXEMPT_KEYWORDS = ['financial', 'educational', 'public transport', 'transport'];
-
-let currentExchangeRate = 13.5; // Placeholder ZiG per USD
-
-export const getExchangeRate = () => {
-  return currentExchangeRate;
-};
-
-export const setExchangeRate = (rate) => {
-  currentExchangeRate = parseFloat(rate);
-};
-
 export const getProductTaxCategory = (productName = '', category = '') => {
   const normalizedStr = `${productName} ${category}`.toLowerCase();
   
-  if (EXEMPT_KEYWORDS.some(kw => normalizedStr.includes(kw))) {
+  if (taxConfig.exemptKeywords.some(kw => normalizedStr.includes(kw))) {
     return TAX_CATEGORIES.EXEMPT;
   }
   
-  if (ZERO_RATED_KEYWORDS.some(kw => normalizedStr.includes(kw))) {
+  if (taxConfig.zeroRatedKeywords.some(kw => normalizedStr.includes(kw))) {
     return TAX_CATEGORIES.ZERO_RATED;
   }
   
@@ -65,14 +100,15 @@ export const calculateVATInclusive = (totalAmount, taxCategory) => {
   if (taxCategory !== TAX_CATEGORIES.STANDARD) {
     return calculateVAT(totalAmount, taxCategory, false);
   }
-  const subtotal = totalAmount / (1 + VAT_RATE);
+  const currentRate = getVATRate();
+  const subtotal = totalAmount / (1 + currentRate);
   const vatAmount = totalAmount - subtotal;
   return {
     subtotal: Number(subtotal.toFixed(4)),
     vatAmount: Number(vatAmount.toFixed(4)),
     total: totalAmount,
     taxCategory,
-    vatRate: VAT_RATE
+    vatRate: currentRate
   };
 };
 
@@ -80,14 +116,15 @@ export const calculateVATExclusive = (netAmount, taxCategory) => {
   if (taxCategory !== TAX_CATEGORIES.STANDARD) {
     return calculateVAT(netAmount, taxCategory, false);
   }
-  const vatAmount = netAmount * VAT_RATE;
+  const currentRate = getVATRate();
+  const vatAmount = netAmount * currentRate;
   const total = netAmount + vatAmount;
   return {
     subtotal: netAmount,
     vatAmount: Number(vatAmount.toFixed(4)),
     total: Number(total.toFixed(4)),
     taxCategory,
-    vatRate: VAT_RATE
+    vatRate: currentRate
   };
 };
 

@@ -7,7 +7,8 @@ import {
   Menu,
   ShieldCheck,
   LogOut,
-  Bell
+  Bell,
+  Sparkles
 } from 'lucide-react';
 import { ROLES } from '../config/rbac';
 
@@ -24,6 +25,7 @@ export default function Header({
   onOpenMobileMenu,
   onOpenQuickCart,
   onOpenNotifications,
+  onOpenOnboarding,
   onLogout
 }) {
   const [timeStr, setTimeStr] = useState('');
@@ -124,6 +126,16 @@ export default function Header({
         >
           <ScanLine className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
           <span className="hidden sm:inline">Scan SKU</span>
+        </button>
+
+        {/* Guided Tour Button */}
+        <button
+          onClick={onOpenOnboarding}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-medium transition-all group"
+          title="Start Guided Platform Tour"
+        >
+          <Sparkles className="w-4 h-4 text-indigo-400 group-hover:rotate-12 transition-transform" />
+          <span className="hidden sm:inline">Tour</span>
         </button>
 
         {/* Notification Bell */}

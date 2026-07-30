@@ -289,6 +289,7 @@ export default function App() {
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onOpenQuickCart={() => setIsQuickCartOpen(true)}
           onOpenNotifications={() => { refreshNotifications(); setIsNotificationCenterOpen(true); }}
+          onOpenOnboarding={() => setIsOnboardingOpen(true)}
           onLogout={handleLogout}
         />
 
