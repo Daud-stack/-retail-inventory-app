@@ -61,7 +61,8 @@ import {
 export default function SuperAdminCommandCenter({ 
   currentUser, 
   onSwitchUser, 
-  setActiveTab: setParentActiveTab 
+  setActiveTab: setParentActiveTab,
+  onLogout 
 }) {
   // Navigation & Sub-Tab states
   const [sidebarNav, setSidebarNav] = useState('command-center');
@@ -442,9 +443,9 @@ export default function SuperAdminCommandCenter({
             </button>
 
             <button 
-              onClick={() => setParentActiveTab && setParentActiveTab('dashboard')}
+              onClick={onLogout}
               className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors border border-red-500/20"
-              title="Exit Super Admin View"
+              title="Log Out & Lock Session"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

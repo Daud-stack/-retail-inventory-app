@@ -24,7 +24,7 @@ export default function App() {
   const [stockMovements, setStockMovements] = useState([]);
   
   // Authentication & RBAC State
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [users, setUsers] = useState(INITIAL_USERS);
   const [currentUser, setCurrentUser] = useState(INITIAL_USERS[0]); // Alex Thorne (Super Admin)
   const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
@@ -174,6 +174,7 @@ export default function App() {
           currentUser={currentUser} 
           onSwitchUser={handleSwitchUser} 
           setActiveTab={setActiveTab} 
+          onLogout={handleLogout}
         />
         <UserManagementModal 
           isOpen={isUserManagementOpen}
