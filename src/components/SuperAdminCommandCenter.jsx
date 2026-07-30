@@ -229,17 +229,34 @@ export default function SuperAdminCommandCenter({
   };
 
   // Filtered store dataset based on sidebar dropdown or tab selection
+  const selectedTenant = tenants.find(t => t.id === selectedTenantFilter);
+  const selectedTenantLicense = licenses.find(l => l.tenantId === selectedTenantFilter);
+
   const filteredTenants = selectedTenantFilter === 'all' 
     ? tenants 
     : tenants.filter(t => t.id === selectedTenantFilter);
 
-  // Derived KPIs
-  const totalStores = tenants.length;
-  const totalProducts = tenants.reduce((acc, t) => acc + t.totalProducts, 0);
-  const totalStaff = tenants.reduce((acc, t) => acc + t.totalStaff, 0);
-  const activeLicenses = licenses.filter(l => l.status === 'Active').length;
-  const expiringLicenses = licenses.filter(l => l.daysLeft <= 30).length;
-  const activeAlerts = MOCK_SYSTEM_ALERTS.length;
+  const filteredLicenses = selectedTenantFilter === 'all'
+    ? licenses
+    : licenses.filter(l => l.tenantId === selectedTenantFilter);
+
+  // Derived Scoped KPIs
+  const totalStores = selectedTenantFilter === 'all' ? tenants.length : 1;
+  const totalProducts = selectedTenantFilter === 'all' 
+    ? tenants.reduce((acc, t) => acc + t.totalProducts, 0) 
+    : selectedTenant?.totalProducts || 0;
+  const totalStaff = selectedTenantFilter === 'all' 
+    ? tenants.reduce((acc, t) => acc + t.totalStaff, 0) 
+    : selectedTenant?.totalStaff || 0;
+  const activeLicenses = selectedTenantFilter === 'all' 
+    ? licenses.filter(l => l.status === 'Active').length 
+    : (selectedTenantLicense?.status === 'Active' ? 1 : 0);
+  const expiringLicenses = selectedTenantFilter === 'all' 
+    ? licenses.filter(l => l.daysLeft <= 30).length 
+    : (selectedTenantLicense && selectedTenantLicense.daysLeft <= 30 ? 1 : 0);
+  const activeAlerts = selectedTenantFilter === 'all' 
+    ? MOCK_SYSTEM_ALERTS.length 
+    : MOCK_SYSTEM_ALERTS.filter(a => a.message.includes(selectedTenant?.name || '')).length;
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden select-none">
@@ -416,7 +433,7 @@ export default function SuperAdminCommandCenter({
       <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-slate-950">
         
         {/* TOP HEADER COMMAND CENTER TITLE BAR */}
-        <header className="px-6 py-5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
+        <header className="px-6 py-5 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
           <div>
             <h1 className="text-2xl font-serif font-extrabold text-slate-100 tracking-tight flex items-center gap-2">
               Super Admin Command Center
@@ -426,13 +443,29 @@ export default function SuperAdminCommandCenter({
             </p>
           </div>
 
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
+          <div className="flex items-center gap-3">
+            {selectedTenantFilter !== 'all' && selectedTenant && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold animate-fadeIn">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Viewing Tenant: {selectedTenant.name}</span>
+                <button 
+                  onClick={() => setSelectedTenantFilter('all')} 
+                  className="ml-1 text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                  title="Reset to All Stores Overview"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-all shadow-sm active:scale-95"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </header>
 
         <main className="p-6 space-y-6 flex-1">
@@ -747,6 +780,71 @@ export default function SuperAdminCommandCenter({
                   <span>Provision New Store</span>
                 </button>
               </div>
+
+              {/* SINGLE STORE SPOTLIGHT CARD (When specific tenant selected) */}
+              {selectedTenantFilter !== 'all' && selectedTenant && (
+                <div className="bg-slate-900/90 border border-emerald-500/40 rounded-2xl p-5 shadow-lg animate-fadeIn space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+                        <Building2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
+                          {selectedTenant.name}
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            {selectedTenant.status}
+                          </span>
+                        </h4>
+                        <span className="text-xs font-mono text-slate-400">Code: {selectedTenant.code} • Location: {selectedTenant.location}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTopTab('licenses')}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md"
+                      >
+                        Manage SaaS License
+                      </button>
+                      <button
+                        onClick={() => setSelectedTenantFilter('all')}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all border border-slate-700"
+                      >
+                        View All Stores
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
+                    <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                      <span className="text-slate-400 block text-[10px]">STORE MANAGER</span>
+                      <strong className="text-slate-200 text-sm">{selectedTenant.manager}</strong>
+                      <span className="text-[10px] text-slate-500 block truncate">{selectedTenant.email}</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                      <span className="text-slate-400 block text-[10px]">PLAN TIER</span>
+                      <strong className="text-indigo-400 text-sm uppercase">{selectedTenant.plan}</strong>
+                      <span className="text-[10px] text-slate-500 block">{selectedTenantLicense?.key || 'Active License'}</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                      <span className="text-slate-400 block text-[10px]">USER SEAT QUOTA</span>
+                      <strong className="text-emerald-400 text-sm">{selectedTenant.totalStaff} / {selectedTenant.maxUsers} Users</strong>
+                      <span className="text-[10px] text-slate-500 block">
+                        {Math.round((selectedTenant.totalStaff / selectedTenant.maxUsers) * 100)}% Capacity
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                      <span className="text-slate-400 block text-[10px]">MONTHLY REVENUE</span>
+                      <strong className="text-teal-400 text-sm">${selectedTenant.monthlyRevenue?.toLocaleString()}</strong>
+                      <span className="text-[10px] text-slate-500 block">Created: {selectedTenant.createdDate}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* STORE MANAGEMENT TABLE */}
               <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl overflow-hidden shadow-sm">
