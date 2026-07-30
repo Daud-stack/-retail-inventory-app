@@ -240,7 +240,7 @@ export default function SuperAdminCommandCenter({
     ? licenses
     : licenses.filter(l => l.tenantId === selectedTenantFilter);
 
-  // Derived Scoped KPIs
+  // Derived Scoped KPIs & Scoped Chart Datasets
   const totalStores = selectedTenantFilter === 'all' ? tenants.length : 1;
   const totalProducts = selectedTenantFilter === 'all' 
     ? tenants.reduce((acc, t) => acc + t.totalProducts, 0) 
@@ -254,9 +254,34 @@ export default function SuperAdminCommandCenter({
   const expiringLicenses = selectedTenantFilter === 'all' 
     ? licenses.filter(l => l.daysLeft <= 30).length 
     : (selectedTenantLicense && selectedTenantLicense.daysLeft <= 30 ? 1 : 0);
-  const activeAlerts = selectedTenantFilter === 'all' 
-    ? MOCK_SYSTEM_ALERTS.length 
-    : MOCK_SYSTEM_ALERTS.filter(a => a.message.includes(selectedTenant?.name || '')).length;
+  
+  // Scoped Chart Data
+  const storeBarData = selectedTenantFilter === 'all'
+    ? MOCK_STORE_BAR_DATA
+    : MOCK_STORE_BAR_DATA.filter(item => 
+        item.name.toLowerCase().includes(selectedTenant?.name?.split(' ')[0].toLowerCase() || '')
+      );
+
+  const licenseDonutData = selectedTenantFilter === 'all'
+    ? MOCK_LICENSE_DONUT_DATA
+    : [
+        { 
+          name: selectedTenantLicense?.plan || selectedTenant?.plan || 'Full', 
+          value: 1, 
+          color: (selectedTenantLicense?.plan || selectedTenant?.plan) === 'Enterprise' ? '#10b981' :
+                 (selectedTenantLicense?.plan || selectedTenant?.plan) === 'Full' ? '#2d7a64' :
+                 (selectedTenantLicense?.plan || selectedTenant?.plan) === 'Starter' ? '#06b6d4' : '#f59e0b' 
+        }
+      ];
+
+  const filteredAlerts = selectedTenantFilter === 'all'
+    ? MOCK_SYSTEM_ALERTS
+    : MOCK_SYSTEM_ALERTS.filter(a => 
+        a.message.toLowerCase().includes(selectedTenant?.name?.split(' ')[0].toLowerCase() || '') ||
+        a.title.toLowerCase().includes('license')
+      );
+
+  const activeAlerts = filteredAlerts.length;
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden select-none">
@@ -647,7 +672,7 @@ export default function SuperAdminCommandCenter({
 
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={MOCK_STORE_BAR_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={storeBarData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <defs>
                           <linearGradient id="storeBarGradient" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#2d7a64" stopOpacity={1} />
@@ -676,20 +701,22 @@ export default function SuperAdminCommandCenter({
                 <div className="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-200">License Plan Breakdown</h3>
-                    <p className="text-[11px] text-slate-400">Distribution of active tenant licensing tiers</p>
+                    <p className="text-[11px] text-slate-400">
+                      {selectedTenantFilter === 'all' ? 'Distribution of active tenant licensing tiers' : `Selected Store Plan (${selectedTenant?.name})`}
+                    </p>
                   </div>
 
                   <div className="h-56 w-full flex items-center justify-center my-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={MOCK_LICENSE_DONUT_DATA}
+                          data={licenseDonutData}
                           innerRadius={55}
                           outerRadius={80}
                           paddingAngle={4}
                           dataKey="value"
                         >
-                          {MOCK_LICENSE_DONUT_DATA.map((entry, index) => (
+                          {licenseDonutData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
                           ))}
                         </Pie>
@@ -714,7 +741,9 @@ export default function SuperAdminCommandCenter({
 
                   <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
                     <span>Total Subscriptions</span>
-                    <span className="font-bold text-slate-200 font-mono">{licenses.length} Plans</span>
+                    <span className="font-bold text-slate-200 font-mono">
+                      {selectedTenantFilter === 'all' ? `${licenses.length} Plans` : '1 Store Plan'}
+                    </span>
                   </div>
                 </div>
 
@@ -727,11 +756,11 @@ export default function SuperAdminCommandCenter({
                     <AlertTriangle className="w-4 h-4 text-emerald-400" />
                     <span>Real-Time Platform Alerts & Audits</span>
                   </h3>
-                  <span className="text-[11px] text-slate-400 font-mono">3 Logs Captured</span>
+                  <span className="text-[11px] text-slate-400 font-mono">{filteredAlerts.length} Logs Captured</span>
                 </div>
 
                 <div className="space-y-2.5">
-                  {MOCK_SYSTEM_ALERTS.map(alert => (
+                  {filteredAlerts.map(alert => (
                     <div key={alert.id} className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${
